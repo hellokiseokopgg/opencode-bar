@@ -21,3 +21,8 @@
 
 ## Instruction
 - Always compile and run again after each change, and then ask to the user to see it. (Kill the existing process before running)
+
+## Release Policy
+- **Workflow**: STRICTLY follow `docs/RELEASE_WORKFLOW.md` for versioning, building, signing, and notarizing.
+- **Signing**: All DMGs distributed via GitHub Releases **MUST** be signed with Developer ID and **NOTARIZED** to pass macOS Gatekeeper.
+- **Documentation**: Update `README.md` and screenshots if UI changes significantly before release.
