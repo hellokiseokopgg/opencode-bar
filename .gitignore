@@ -25,3 +25,8 @@ DerivedData/
 # Sensitive Data
 api.txt
 .env
+
+# Build Artifacts
+*.dmg
+dist/
+exportOptions.plist

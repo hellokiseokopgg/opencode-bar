@@ -37,6 +37,11 @@
 
 Download the latest `.dmg` file from the [**Releases**](https://github.com/kargnas/copilot-usage-monitor/releases/latest) page.
 
+> **Note**: If you see a "App is damaged" error, run this command in Terminal:
+> ```bash
+> xattr -cr /Applications/CopilotMonitor.app
+> ```
+
 ### Build from Source
 
 ```bash
