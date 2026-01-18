@@ -269,15 +269,16 @@ final class UsageMenuItemView: NSView {
         usageLabel.stringValue = "Used: \(used.formatted()) / \(limit.formatted())"
         percentLabel.stringValue = "\(Int(percentage))%"
         
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        let costString = formatter.string(from: NSNumber(value: usage.netBilledAmount)) ?? String(format: "$%.2f", usage.netBilledAmount)
+        costLabel.stringValue = "Add-on Cost: \(costString)"
+        
         if usage.netBilledAmount > 0 {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .currency
-            formatter.currencyCode = "USD"
-            let costString = formatter.string(from: NSNumber(value: usage.netBilledAmount)) ?? String(format: "$%.2f", usage.netBilledAmount)
-            costLabel.stringValue = "Add-on Cost: \(costString)"
             costLabel.textColor = .systemOrange
         } else {
-            costLabel.stringValue = ""
+            costLabel.textColor = .secondaryLabelColor
         }
         
         let color = Self.colorForPercentage(percentage)
@@ -426,13 +427,15 @@ final class StatusBarController: NSObject {
     private func setupNotificationObservers() {
         NotificationCenter.default.addObserver(forName: Notification.Name("billingPageLoaded"), object: nil, queue: .main) { [weak self] _ in
             logger.info("노티 수신: billingPageLoaded")
-            Task { @MainActor in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
                 self?.fetchUsage()
             }
         }
         NotificationCenter.default.addObserver(forName: Notification.Name("sessionExpired"), object: nil, queue: .main) { [weak self] _ in
             logger.info("노티 수신: sessionExpired")
-            Task { @MainActor in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
                 self?.updateUIForLoggedOut()
             }
         }
@@ -442,16 +445,18 @@ final class StatusBarController: NSObject {
         refreshTimer?.invalidate()
         
         let interval = TimeInterval(refreshInterval.rawValue)
+        let intervalTitle = refreshInterval.title
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
-            logger.info("타이머 트리거 (\(self?.refreshInterval.title ?? ""))")
-            Task { @MainActor in
+            logger.info("타이머 트리거 (\(intervalTitle))")
+            Task { @MainActor [weak self] in
                 self?.triggerRefresh()
             }
         }
         RunLoop.main.add(timer, forMode: .common)
         refreshTimer = timer
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             self?.triggerRefresh()
         }
     }
