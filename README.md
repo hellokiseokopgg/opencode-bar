@@ -1,7 +1,7 @@
 # Copilot Monitor
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="Copilot Monitor Screenshot" width="480">
+  <img src="docs/screenshot.jpeg" alt="Copilot Monitor Screenshot" width="480">
 </p>
 
 <p align="center">
