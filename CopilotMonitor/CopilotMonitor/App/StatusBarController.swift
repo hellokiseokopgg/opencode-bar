@@ -486,7 +486,8 @@ final class StatusBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        historyMenuItem = NSMenuItem(title: "📊 Usage History", action: nil, keyEquivalent: "")
+        historyMenuItem = NSMenuItem(title: "Usage History", action: nil, keyEquivalent: "")
+        historyMenuItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Usage History")
         historySubmenu = NSMenu()
         historyMenuItem.submenu = historySubmenu
         let loadingItem = NSMenuItem(title: "Loading...", action: nil, keyEquivalent: "")
@@ -1125,7 +1126,8 @@ final class StatusBarController: NSObject {
         historySubmenu.removeAllItems()
         
         if state.hasNoData {
-            let item = NSMenuItem(title: "📭 No data", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: "No data", action: nil, keyEquivalent: "")
+            item.image = NSImage(systemSymbolName: "tray", accessibilityDescription: "No data")
             item.isEnabled = false
             historySubmenu.addItem(item)
             return
@@ -1136,8 +1138,9 @@ final class StatusBarController: NSObject {
             formatter.numberStyle = .decimal
             formatter.maximumFractionDigits = 0
             
-            let monthlyText = "📈 Predicted EOM: \(formatter.string(from: NSNumber(value: prediction.predictedMonthlyRequests)) ?? "0") requests"
+            let monthlyText = "Predicted EOM: \(formatter.string(from: NSNumber(value: prediction.predictedMonthlyRequests)) ?? "0") requests"
             let monthlyItem = NSMenuItem(title: monthlyText, action: nil, keyEquivalent: "")
+            monthlyItem.image = NSImage(systemSymbolName: "chart.line.uptrend.xyaxis", accessibilityDescription: "Predicted EOM")
             monthlyItem.isEnabled = false
             monthlyItem.attributedTitle = NSAttributedString(
                 string: monthlyText,
@@ -1146,8 +1149,9 @@ final class StatusBarController: NSObject {
             historySubmenu.addItem(monthlyItem)
             
             if prediction.predictedBilledAmount > 0 {
-                let costText = String(format: "💸 Predicted Add-on: $%.2f", prediction.predictedBilledAmount)
+                let costText = String(format: "Predicted Add-on: $%.2f", prediction.predictedBilledAmount)
                 let costItem = NSMenuItem(title: costText, action: nil, keyEquivalent: "")
+                costItem.image = NSImage(systemSymbolName: "dollarsign.circle", accessibilityDescription: "Predicted Add-on")
                 costItem.isEnabled = false
                 costItem.attributedTitle = NSAttributedString(
                     string: costText,
@@ -1160,11 +1164,13 @@ final class StatusBarController: NSObject {
             }
             
             if prediction.confidenceLevel == .low {
-                let confItem = NSMenuItem(title: "⚠️ Low prediction accuracy", action: nil, keyEquivalent: "")
+                let confItem = NSMenuItem(title: "Low prediction accuracy", action: nil, keyEquivalent: "")
+                confItem.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Low accuracy")
                 confItem.isEnabled = false
                 historySubmenu.addItem(confItem)
             } else if prediction.confidenceLevel == .medium {
-                let confItem = NSMenuItem(title: "📊 Medium prediction accuracy", action: nil, keyEquivalent: "")
+                let confItem = NSMenuItem(title: "Medium prediction accuracy", action: nil, keyEquivalent: "")
+                confItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Medium accuracy")
                 confItem.isEnabled = false
                 historySubmenu.addItem(confItem)
             }
@@ -1173,7 +1179,8 @@ final class StatusBarController: NSObject {
         }
         
         if state.isStale {
-            let staleItem = NSMenuItem(title: "⏱️ Data is stale", action: nil, keyEquivalent: "")
+            let staleItem = NSMenuItem(title: "Data is stale", action: nil, keyEquivalent: "")
+            staleItem.image = NSImage(systemSymbolName: "clock.badge.exclamationmark", accessibilityDescription: "Data is stale")
             staleItem.isEnabled = false
             historySubmenu.addItem(staleItem)
         }
@@ -1209,7 +1216,8 @@ final class StatusBarController: NSObject {
         }
         
         historySubmenu.addItem(NSMenuItem.separator())
-        let predictionPeriodItem = NSMenuItem(title: "⚙️ Prediction Period", action: nil, keyEquivalent: "")
+        let predictionPeriodItem = NSMenuItem(title: "Prediction Period", action: nil, keyEquivalent: "")
+        predictionPeriodItem.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: "Prediction Period")
         predictionPeriodItem.submenu = predictionPeriodMenu
         historySubmenu.addItem(predictionPeriodItem)
     }
