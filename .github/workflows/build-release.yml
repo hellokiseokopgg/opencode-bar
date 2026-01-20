@@ -71,11 +71,8 @@ jobs:
       - name: Export App (Unsigned)
         if: "!startsWith(github.ref, 'refs/tags/v')"
         run: |
-          cd CopilotMonitor
-          xcodebuild -exportArchive \
-            -archivePath build/CopilotMonitor.xcarchive \
-            -exportPath build/export \
-            -exportOptionsPlist ../ExportOptions.plist
+          mkdir -p CopilotMonitor/build/export
+          cp -R CopilotMonitor/build/CopilotMonitor.xcarchive/Products/Applications/CopilotMonitor.app CopilotMonitor/build/export/
       
       - name: Export App (Signed)
         if: startsWith(github.ref, 'refs/tags/v')
