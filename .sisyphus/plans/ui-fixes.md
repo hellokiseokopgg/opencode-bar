@@ -294,15 +294,15 @@ Day 6 ($0.19) - Day 5 ($0.19) = Jan 25: $0.00
 - Menu restructure: Two sections with total sum header
 
 ### Definition of Done
-- [ ] Menu bar shows Pay-as-you-go total ($322.81)
-- [ ] Pay-as-you-go section: OpenRouter, OpenCode Zen, Copilot Add-on
-- [ ] Quota Status section: Claude, Codex, Gemini CLI, Antigravity, Copilot
-- [ ] All providers have detail submenus
-- [ ] OpenCode Zen shows daily history
-- [ ] Copilot shows daily history with model breakdown
-- [ ] All icons 16x16
-- [ ] Sign In/Reset Login removed
-- [ ] Build succeeds
+- [x] Menu bar shows Pay-as-you-go total ($322.81)
+- [x] Pay-as-you-go section: OpenRouter, OpenCode Zen, Copilot Add-on
+- [x] Quota Status section: Claude, Codex, Gemini CLI, Antigravity, Copilot
+- [x] All providers have detail submenus
+- [x] OpenCode Zen shows daily history
+- [x] Copilot shows daily history with model breakdown
+- [x] All icons 16x16
+- [x] Sign In/Reset Login removed
+- [x] Build succeeds
 
 ---
 
@@ -526,7 +526,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 2. Create AntigravityProvider
+- [x] 2. Create AntigravityProvider
 
   **What to do**:
   - Create new `AntigravityProvider.swift` in `CopilotMonitor/CopilotMonitor/Providers/`
@@ -585,7 +585,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 3. Create OpenCodeZenProvider
+- [x] 3. Create OpenCodeZenProvider
 
   **What to do**:
   - Create new `OpenCodeZenProvider.swift` in `CopilotMonitor/CopilotMonitor/Providers/`
@@ -701,7 +701,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 5. Update CodexProvider with Full Data
+- [x] 5. Update CodexProvider with Full Data
 
   **What to do**:
   - Parse all fields: plan_type, secondary_window, credits
@@ -731,7 +731,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 6. Update GeminiCLIProvider with Full Data
+- [x] 6. Update GeminiCLIProvider with Full Data
 
   **What to do**:
   - Return all model quotas in `modelBreakdown`
@@ -760,7 +760,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 7. Implement Browser Cookie Extraction + Copilot History API (Swift Native)
+- [x] 7. Implement Browser Cookie Extraction + Copilot History API (Swift Native)
 
   **Overview**:
   This is a complex task requiring two components:
@@ -1173,7 +1173,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 8. Split Copilot Display into Add-on + Quota (UI-ONLY, No New Provider)
+- [x] 8. Split Copilot Display into Add-on + Quota (UI-ONLY, No New Provider)
 
   **What to do**:
   - Display `currentUsage: CopilotUsage` TWICE in menu (same data, different views):
@@ -1320,7 +1320,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 9. Update OpenRouterProvider Display
+- [x] 9. Update OpenRouterProvider Display
 
   **What to do**:
   - Change main display from utilization% to `usage_monthly` ($)
@@ -1363,7 +1363,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 10. Menu Restructure (Pay-as-you-go / Quota Sections)
+- [x] 10. Menu Restructure (Pay-as-you-go / Quota Sections)
 
   **What to do**:
   - Restructure `updateMultiProviderMenu()`:
@@ -1687,7 +1687,7 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 
 ---
 
-- [ ] 12. Icon Resizing + Cleanup
+- [x] 12. Icon Resizing + Cleanup
 
   **What to do**:
   - Resize all provider icons to 16x16 via runtime resizing (icons are PDF vectors)
