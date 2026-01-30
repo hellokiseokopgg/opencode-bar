@@ -1861,17 +1861,17 @@ Task 1 → Task 7 → Task 8 → Task 10 → Task 12
 ## Success Criteria
 
 ### Final Checklist
-- [ ] Menu bar shows total pay-as-you-go cost
-- [ ] Pay-as-you-go section: OpenRouter ($), OpenCode Zen ($), Copilot Add-on ($)
-- [ ] Quota section: Claude (%), Codex (%), Gemini CLI (%), Antigravity (%), Copilot (%)
-- [ ] OpenRouter submenu: Credits, Daily, Weekly
-- [ ] OpenCode Zen submenu: Stats + Daily History
-- [ ] Copilot Add-on submenu: Overage + History
-- [ ] Claude submenu: 5h, 7d, Sonnet, Opus, Extra Usage
-- [ ] Codex submenu: Primary, Secondary, Plan, Credits
-- [ ] Gemini CLI submenu: Per-model quotas
-- [ ] Antigravity submenu: Per-model quotas, Plan, Email
-- [ ] Copilot submenu: Progress bar, Used, Free Quota
-- [ ] All icons 16x16
-- [ ] Sign In/Reset Login removed
-- [ ] Build succeeds
+- [x] Menu bar shows total pay-as-you-go cost
+- [x] Pay-as-you-go section: OpenRouter ($), OpenCode Zen ($), Copilot Add-on ($)
+- [x] Quota section: Claude (%), Codex (%), Gemini CLI (%), Antigravity (%), Copilot (%)
+- [x] OpenRouter submenu: Credits, Daily, Weekly
+- [x] OpenCode Zen submenu: Stats + Daily History
+- [x] Copilot Add-on submenu: Overage + History
+- [x] Claude submenu: 5h, 7d, Sonnet, Opus, Extra Usage
+- [x] Codex submenu: Primary, Secondary, Plan, Credits
+- [x] Gemini CLI submenu: Per-model quotas
+- [x] Antigravity submenu: Per-model quotas, Plan, Email
+- [x] Copilot submenu: Progress bar, Used, Free Quota
+- [x] All icons 16x16
+- [x] Sign In/Reset Login removed
+- [x] Build succeeds
