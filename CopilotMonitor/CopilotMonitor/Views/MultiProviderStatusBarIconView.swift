@@ -141,6 +141,10 @@ final class MultiProviderStatusBarIconView: NSView {
             iconName = "GeminiIcon"
         case .copilot:
             iconName = "CopilotIcon"
+        case .openRouter:
+            iconName = "OpenRouterIcon"
+        case .openCode:
+            iconName = "OpenCodeIcon"
         }
         
         guard let icon = NSImage(named: iconName) else {

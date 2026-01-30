@@ -1073,6 +1073,10 @@ final class StatusBarController: NSObject {
             symbolName = "cpu"
         case .geminiCLI:
             symbolName = "sparkles"
+        case .openRouter:
+            symbolName = "network"
+        case .openCode:
+            symbolName = "code"
         }
         return NSImage(systemSymbolName: symbolName, accessibilityDescription: identifier.displayName)
     }
