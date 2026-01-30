@@ -31,6 +31,7 @@
 		OC1111111111111111111111 /* OpenCodeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = OC2222222222222222222222 /* OpenCodeProvider.swift */; };
 		OR1111111111111111111111 /* OpenRouterProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = OR2222222222222222222222 /* OpenRouterProvider.swift */; };
 		OR4444444444444444444444 /* OpenRouterProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OR3333333333333333333333 /* OpenRouterProviderTests.swift */; };
+		OZ1111111111111111111111 /* OpenCodeZenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = OZ2222222222222222222222 /* OpenCodeZenProvider.swift */; };
 		OR6666666666666666666666 /* openrouter_credits_response.json in Resources */ = {isa = PBXBuildFile; fileRef = OR5555555555555555555555 /* openrouter_credits_response.json */; };
 		OR8888888888888888888888 /* openrouter_key_response.json in Resources */ = {isa = PBXBuildFile; fileRef = OR7777777777777777777777 /* openrouter_key_response.json */; };
 		PR1111111111111111111111 /* ProviderResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = PR2222222222222222222222 /* ProviderResult.swift */; };
@@ -80,6 +81,7 @@
 		OC2222222222222222222222 /* OpenCodeProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenCodeProvider.swift; sourceTree = "<group>"; };
 		OR2222222222222222222222 /* OpenRouterProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenRouterProvider.swift; sourceTree = "<group>"; };
 		OR3333333333333333333333 /* OpenRouterProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenRouterProviderTests.swift; sourceTree = "<group>"; };
+		OZ2222222222222222222222 /* OpenCodeZenProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenCodeZenProvider.swift; sourceTree = "<group>"; };
 		OR5555555555555555555555 /* openrouter_credits_response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = openrouter_credits_response.json; sourceTree = "<group>"; };
 		OR7777777777777777777777 /* openrouter_key_response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = openrouter_key_response.json; sourceTree = "<group>"; };
 		PR2222222222222222222222 /* ProviderResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderResult.swift; sourceTree = "<group>"; };
@@ -120,6 +122,7 @@
 				OC2222222222222222222222 /* OpenCodeProvider.swift */,
 				OR2222222222222222222222 /* OpenRouterProvider.swift */,
 				F1DA8E47F4CFEFC3571708AD /* AntigravityProvider.swift */,
+				OZ2222222222222222222222 /* OpenCodeZenProvider.swift */,
 			);
 			name = Providers;
 			path = Providers;
@@ -361,6 +364,7 @@
 				OC1111111111111111111111 /* OpenCodeProvider.swift in Sources */,
 				OR1111111111111111111111 /* OpenRouterProvider.swift in Sources */,
 				390C3E920A03C8890AAA1CEE /* AntigravityProvider.swift in Sources */,
+				OZ1111111111111111111111 /* OpenCodeZenProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

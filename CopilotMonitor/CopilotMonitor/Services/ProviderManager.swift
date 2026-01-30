@@ -24,7 +24,8 @@ final class ProviderManager {
             GeminiCLIProvider(),
             OpenRouterProvider(),
             OpenCodeProvider(),
-            AntigravityProvider()
+            AntigravityProvider(),
+            OpenCodeZenProvider()
         ]
     }
     
