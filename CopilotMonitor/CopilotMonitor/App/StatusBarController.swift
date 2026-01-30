@@ -4,7 +4,7 @@ import ServiceManagement
 import WebKit
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "StatusBarController")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "StatusBarController")
 
 // MARK: - Refresh Interval
 enum RefreshInterval: Int, CaseIterable {

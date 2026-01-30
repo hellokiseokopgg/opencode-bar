@@ -2,7 +2,7 @@ import Foundation
 import WebKit
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "CopilotProvider")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "CopilotProvider")
 
 // MARK: - CopilotProvider Implementation
 

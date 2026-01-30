@@ -5,7 +5,9 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.copilotmonitor.CopilotMonitor</string>
 	<key>CFBundleName</key>
-	<string>CopilotMonitor</string>
+	<string>OpencodeProvidersMonitor</string>
+	<key>CFBundleDisplayName</key>
+	<string>Opencode Providers Monitor</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

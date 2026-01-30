@@ -2,7 +2,7 @@ import Foundation
 import WebKit
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "AuthManager")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "AuthManager")
 
 @MainActor
 final class AuthManager: NSObject {
@@ -98,7 +98,7 @@ final class AuthManager: NSObject {
 extension AuthManager: WKNavigationDelegate {
     nonisolated func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         let url = navigationAction.request.url
-        let loggerLocal = Logger(subsystem: "com.copilotmonitor", category: "AuthManager")
+        let loggerLocal = Logger(subsystem: "com.opencodeproviders", category: "AuthManager")
         loggerLocal.info("decidePolicyFor: \(url?.absoluteString ?? "nil")")
         guard let host = url?.host else {
             loggerLocal.info("decidePolicyFor: host 없음, cancel")

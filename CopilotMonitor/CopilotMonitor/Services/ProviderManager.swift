@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "ProviderManager")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "ProviderManager")
 
 /// Singleton coordinator for managing multiple AI provider usage tracking
 /// Handles parallel fetching, aggregation, and error recovery

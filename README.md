@@ -1,7 +1,7 @@
-# AI Usage Monitor (formerly Copilot Monitor)
+# Opencode Providers Monitor
 
 <p align="center">
-  <img src="docs/screenshot.jpeg" alt="AI Usage Monitor Screenshot" width="480">
+  <img src="docs/screenshot.jpeg" alt="Opencode Providers Monitor Screenshot" width="480">
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@ Download the latest `.dmg` file from the [**Releases**](https://github.com/kargn
 
 > **Note**: If you see a "App is damaged" error, run this command in Terminal:
 > ```bash
-> xattr -cr /Applications/CopilotMonitor.app
+> xattr -cr /Applications/OpencodeProvidersMonitor.app
 > ```
 
 ### Build from Source (Xcode)
@@ -73,20 +73,20 @@ For development without Xcode GUI (e.g., using VS Code, Cursor, or other editors
 
 ```bash
 # Kill existing process, build, and run
-pkill -x CopilotMonitor; xcodebuild -project CopilotMonitor/CopilotMonitor.xcodeproj -scheme CopilotMonitor -configuration Debug build && open ~/Library/Developer/Xcode/DerivedData/CopilotMonitor-*/Build/Products/Debug/CopilotMonitor.app
+pkill -x OpencodeProvidersMonitor; xcodebuild -project CopilotMonitor/CopilotMonitor.xcodeproj -scheme CopilotMonitor -configuration Debug build && open ~/Library/Developer/Xcode/DerivedData/CopilotMonitor-*/Build/Products/Debug/OpencodeProvidersMonitor.app
 ```
 
 Or step by step:
 
 ```bash
 # 1. Kill existing process (if running)
-pkill -x CopilotMonitor
+pkill -x OpencodeProvidersMonitor
 
 # 2. Build
 xcodebuild -project CopilotMonitor/CopilotMonitor.xcodeproj -scheme CopilotMonitor -configuration Debug build
 
 # 3. Run
-open ~/Library/Developer/Xcode/DerivedData/CopilotMonitor-*/Build/Products/Debug/CopilotMonitor.app
+open ~/Library/Developer/Xcode/DerivedData/CopilotMonitor-*/Build/Products/Debug/OpencodeProvidersMonitor.app
 ```
 
 **Requirements:**
@@ -98,7 +98,7 @@ open ~/Library/Developer/Xcode/DerivedData/CopilotMonitor-*/Build/Products/Debug
 
 ### Initial Setup
 
-1. **Launch the app**: Run `CopilotMonitor.app`
+1. **Launch the app**: Run `OpencodeProvidersMonitor.app`
 2. **Configure providers**: 
    - For **Copilot**: Click "Sign In" and log in with your GitHub account
    - For **Claude, Codex, Gemini CLI**: Ensure you have OpenCode installed with valid auth tokens at `~/.local/share/opencode/auth.json`
@@ -166,7 +166,7 @@ The app tracks your daily usage to provide smart predictions:
 |----------|---------------|--------------|-------------|
 | **Copilot** | GitHub OAuth (WebView) | `/settings/billing/copilot_usage_card` | Quota-based with overage |
 | **Claude** | OpenCode auth token | `https://api.anthropic.com/api/oauth/usage` | Quota-based (7-day window) |
-| **Codex** | OpenCode auth token | `https://chatgpt.com/backend-api/wham/usage` | Pay-as-you-go utilization |
+| **Codex** | OpenCode auth token | `https://chatgpt.com/backend-api/wham/usage` | Quota-based utilization |
 | **Gemini CLI** | OpenCode OAuth token | `https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota` | Quota-based (per-model buckets) |
 
 ### Architecture
@@ -207,5 +207,5 @@ MIT License - See [LICENSE](LICENSE) file for details.
 ---
 
 <p align="center">
-  Made with ❤️ for Copilot power users
+  Made with ❤️ for AI power users
 </p>

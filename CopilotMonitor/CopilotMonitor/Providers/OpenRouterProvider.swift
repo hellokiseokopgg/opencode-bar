@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "OpenRouterProvider")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "OpenRouterProvider")
 
 /// Provider for OpenRouter API usage tracking
 /// Uses pay-as-you-go billing model with credit-based utilization

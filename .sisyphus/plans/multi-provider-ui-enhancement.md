@@ -2114,7 +2114,7 @@ throw ProviderError.authenticationFailed("API key not found")
 
 ---
 
-- [ ] 9. 앱 리브랜딩: OpencodeProvidersMonitor
+- [x] 9. 앱 리브랜딩: OpencodeProvidersMonitor
 
   **What to do**:
   

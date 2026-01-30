@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "OpenCodeProvider")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "OpenCodeProvider")
 
 /// Provider for OpenCode API usage tracking
 /// Uses pay-as-you-go billing model with credit-based utilization

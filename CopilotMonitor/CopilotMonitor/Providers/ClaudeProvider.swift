@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "ClaudeProvider")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "ClaudeProvider")
 
 // MARK: - Claude API Response Models
 

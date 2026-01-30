@@ -69,7 +69,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "GitHub 로그인"
+        window.title = "GitHub Login"
         window.center()
         window.contentView = NSHostingView(rootView: LoginView(webView: AuthManager.shared.webView))
         window.isReleasedWhenClosed = false

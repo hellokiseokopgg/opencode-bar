@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "GeminiCLIProvider")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "GeminiCLIProvider")
 
 // MARK: - Gemini CLI API Response Models
 

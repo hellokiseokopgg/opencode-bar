@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "CodexProvider")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "CodexProvider")
 
 final class CodexProvider: ProviderProtocol {
     let identifier: ProviderIdentifier = .codex

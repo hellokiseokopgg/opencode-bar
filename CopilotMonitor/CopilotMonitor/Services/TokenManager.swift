@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.copilotmonitor", category: "TokenManager")
+private let logger = Logger(subsystem: "com.opencodeproviders", category: "TokenManager")
 
 // MARK: - Data Structures for JSON Parsing
 
