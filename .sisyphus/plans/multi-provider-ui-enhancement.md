@@ -686,7 +686,7 @@ Parallel Speedup: ~35% faster than sequential
 
 ---
 
-- [ ] 1. ProviderIdentifier 및 TokenManager 확장 (컴파일 가능한 최소 변경)
+- [x] 1. ProviderIdentifier 및 TokenManager 확장 (컴파일 가능한 최소 변경)
 
   **What to do**:
   - `ProviderIdentifier` enum에 `.openRouter`, `.openCode` case 추가
@@ -803,7 +803,7 @@ Parallel Speedup: ~35% faster than sequential
 
 ---
 
-- [ ] 2. 메뉴바 아이콘 SF Symbol gauge.medium 변경
+- [x] 2. 메뉴바 아이콘 SF Symbol gauge.medium 변경
 
   **What to do**:
   - `StatusBarController.swift`의 `StatusBarIconView` 클래스 (line 59-158) 수정
