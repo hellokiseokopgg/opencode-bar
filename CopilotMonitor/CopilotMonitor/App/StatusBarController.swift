@@ -86,7 +86,7 @@ final class StatusBarController: NSObject {
         setupMenu()
         setupNotificationObservers()
         startRefreshTimer()
-        logger.info("init 완료")
+        logger.info("Init completed")
     }
     
     private func setupStatusItem() {
@@ -249,7 +249,7 @@ final class StatusBarController: NSObject {
     
     private func setupNotificationObservers() {
         NotificationCenter.default.addObserver(forName: Notification.Name("billingPageLoaded"), object: nil, queue: .main) { [weak self] _ in
-            logger.info("노티 수신: billingPageLoaded")
+            logger.info("Notification received: billingPageLoaded")
             guard let self = self else { return }
             Task { @MainActor [weak self] in
                 self?.fetchUsage()
@@ -257,7 +257,7 @@ final class StatusBarController: NSObject {
             }
         }
         NotificationCenter.default.addObserver(forName: Notification.Name("sessionExpired"), object: nil, queue: .main) { [weak self] _ in
-            logger.info("노티 수신: sessionExpired")
+            logger.info("Notification received: sessionExpired")
             guard let self = self else { return }
             Task { @MainActor [weak self] in
                 self?.updateUIForLoggedOut()
@@ -273,7 +273,7 @@ final class StatusBarController: NSObject {
         let interval = TimeInterval(refreshInterval.rawValue)
         let intervalTitle = refreshInterval.title
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
-            logger.info("타이머 트리거 (\(intervalTitle))")
+            logger.info("Timer triggered (\(intervalTitle))")
             Task { @MainActor [weak self] in
                 self?.triggerRefresh()
             }
@@ -288,7 +288,7 @@ final class StatusBarController: NSObject {
     }
     
     func triggerRefresh() {
-        logger.info("triggerRefresh 시작")
+        logger.info("triggerRefresh started")
         AuthManager.shared.loadBillingPage()
     }
     
@@ -337,7 +337,7 @@ final class StatusBarController: NSObject {
     }
     
     private func fetchCustomerIdFromAPI(webView: WKWebView) async -> String? {
-        logger.info("fetchUsage: [Step 1] API(/api/v3/user)를 통한 ID 확보 시도")
+        logger.info("fetchUsage: [Step 1] Attempting to obtain ID via API(/api/v3/user)")
         
         let userApiJS = """
         return await (async function() {
@@ -372,7 +372,7 @@ final class StatusBarController: NSObject {
     }
     
     private func fetchCustomerIdFromDOM(webView: WKWebView) async -> String? {
-        logger.info("fetchUsage: [Step 2] DOM 추출 시도")
+        logger.info("fetchUsage: [Step 2] Attempting DOM extraction")
         
         let extractionJS = """
         return (function() {
@@ -398,7 +398,7 @@ final class StatusBarController: NSObject {
     }
     
     private func fetchCustomerIdFromHTML(webView: WKWebView) async -> String? {
-        logger.info("fetchUsage: [Step 3] HTML Regex 시도")
+        logger.info("fetchUsage: [Step 3] Attempting HTML Regex")
         
         let htmlJS = "return document.documentElement.outerHTML"
         guard let html = try? await webView.callAsyncJavaScript(htmlJS, arguments: [:], in: nil, contentWorld: .defaultClient) as? String else {
@@ -462,7 +462,7 @@ final class StatusBarController: NSObject {
                 lastFetchTime = Date()
                 updateUIForSuccess(usage: usage)
                 saveCache(usage: usage)
-                logger.info("fetchUsage: 성공")
+                logger.info("fetchUsage: Success")
                 return true
             }
         } catch {
@@ -536,57 +536,30 @@ final class StatusBarController: NSObject {
     
     // MARK: - Multi-Provider Fetch
     
-    private func fetchMultiProviderData() async {
-        let enabledProviders = ProviderManager.shared.getAllProviders().filter { provider in
-            isProviderEnabled(provider.identifier) && provider.identifier != .copilot
-        }
-        
-        // DEBUG: Log to file
-        let enabledNames = enabledProviders.map { $0.identifier.displayName }
-        let debugLog = "🔍 DEBUG fetchMultiProviderData: enabledProviders = \(enabledNames)\n"
-        try? debugLog.write(toFile: "/tmp/copilot_debug.log", atomically: false, encoding: .utf8)
-        
-        guard !enabledProviders.isEmpty else {
-            logger.info("fetchMultiProviderData: No enabled providers, skipping")
-            print("🔍 DEBUG: No enabled providers, returning early")
-            return
-        }
-        
-        logger.info("fetchMultiProviderData: Fetching \(enabledProviders.count) providers")
-        let results = await ProviderManager.shared.fetchAll()
-        
-        let fetchAllMsg = "📥 fetchAll returned \(results.count) results: \(results.keys.map { $0.displayName })\n"
-        if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-            handle.seekToEndOfFile()
-            handle.write(fetchAllMsg.data(using: .utf8)!)
-            handle.closeFile()
-        }
-        
-        let filteredResults = results.filter { (identifier, _) in
-            isProviderEnabled(identifier) && identifier != .copilot
-        }
-        
-        let filterMsg = "🔎 After filter: \(filteredResults.count) results: \(filteredResults.keys.map { $0.displayName })\n"
-        if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-            handle.seekToEndOfFile()
-            handle.write(filterMsg.data(using: .utf8)!)
-            handle.closeFile()
-        }
-        
-        await MainActor.run {
-            let mainActorMsg = "🎯 MainActor.run: Setting providerResults and calling updateMultiProviderMenu\n"
-            if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-                handle.seekToEndOfFile()
-                handle.write(mainActorMsg.data(using: .utf8)!)
-                handle.closeFile()
-            }
-            
-            self.providerResults = filteredResults
-            self.updateMultiProviderMenu()
-        }
-        
-        logger.info("fetchMultiProviderData: Completed with \(filteredResults.count) results")
-    }
+     private func fetchMultiProviderData() async {
+         let enabledProviders = ProviderManager.shared.getAllProviders().filter { provider in
+             isProviderEnabled(provider.identifier) && provider.identifier != .copilot
+         }
+         
+         guard !enabledProviders.isEmpty else {
+             logger.info("fetchMultiProviderData: No enabled providers, skipping")
+             return
+         }
+         
+         logger.info("fetchMultiProviderData: Fetching \(enabledProviders.count) providers")
+         let results = await ProviderManager.shared.fetchAll()
+         
+         let filteredResults = results.filter { (identifier, _) in
+             isProviderEnabled(identifier) && identifier != .copilot
+         }
+         
+         await MainActor.run {
+             self.providerResults = filteredResults
+             self.updateMultiProviderMenu()
+         }
+         
+         logger.info("fetchMultiProviderData: Completed with \(filteredResults.count) results")
+     }
     
     private func calculatePayAsYouGoTotal(providerResults: [ProviderIdentifier: ProviderResult], copilotUsage: CopilotUsage?) -> Double {
         var total = 0.0
@@ -605,30 +578,8 @@ final class StatusBarController: NSObject {
     }
     
       private func updateMultiProviderMenu() {
-          // DEBUG: Log entry
-          let debugEntry = "\n📋 updateMultiProviderMenu called\n"
-          if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-              handle.seekToEndOfFile()
-              handle.write(debugEntry.data(using: .utf8)!)
-              handle.closeFile()
-          }
-          
           guard let historyIndex = menu.items.firstIndex(of: historyMenuItem) else {
-              let debugMsg = "❌ historyMenuItem not found in menu!\n"
-              if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-                  handle.seekToEndOfFile()
-                  handle.write(debugMsg.data(using: .utf8)!)
-                  handle.closeFile()
-              }
               return
-          }
-          
-          // DEBUG: Log historyIndex
-          let debugIdx = "📍 historyIndex = \(historyIndex)\n"
-          if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-              handle.seekToEndOfFile()
-              handle.write(debugIdx.data(using: .utf8)!)
-              handle.closeFile()
           }
           
           var itemsToRemove: [NSMenuItem] = []
@@ -642,30 +593,7 @@ final class StatusBarController: NSObject {
          
          let hasCopilotData = currentUsage != nil
          
-         // DEBUG: Log providerResults
-         let debugResults = "📊 providerResults.count = \(providerResults.count), hasCopilotData = \(hasCopilotData)\n"
-         if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-             handle.seekToEndOfFile()
-             handle.write(debugResults.data(using: .utf8)!)
-             handle.closeFile()
-         }
-         
-         for (id, result) in providerResults {
-             let debugItem = "  - \(id.displayName): \(result.usage)\n"
-             if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-                 handle.seekToEndOfFile()
-                 handle.write(debugItem.data(using: .utf8)!)
-                 handle.closeFile()
-             }
-         }
-         
          guard !providerResults.isEmpty || hasCopilotData else {
-             let debugEmpty = "⚠️ No data to display, returning early\n"
-             if let handle = FileHandle(forWritingAtPath: "/tmp/copilot_debug.log") {
-                 handle.seekToEndOfFile()
-                 handle.write(debugEmpty.data(using: .utf8)!)
-                 handle.closeFile()
-             }
              return
          }
         
@@ -1089,12 +1017,12 @@ final class StatusBarController: NSObject {
     
     private func loadCachedHistoryOnStartup() {
         guard let cached = loadHistoryCache() else {
-            logger.info("캐시 없음 - 히스토리 로드 스킵")
+            logger.info("No cache - skipping history load")
             return
         }
         
         if hasMonthChanged(cached.fetchedAt) {
-            logger.info("월 변경 감지 - 캐시 삭제")
+            logger.info("Month change detected - deleting cache")
             UserDefaults.standard.removeObject(forKey: "copilot.history.cache")
             return
         }
@@ -1106,7 +1034,7 @@ final class StatusBarController: NSObject {
     
     private func fetchUsageHistoryNow() {
         guard let customerId = self.customerId else {
-            logger.warning("fetchUsageHistoryNow: customerId가 nil, 스킵")
+            logger.warning("fetchUsageHistoryNow: customerId is nil, skipping")
             return
         }
         
@@ -1130,7 +1058,7 @@ final class StatusBarController: NSObject {
                 let result = try await webView.callAsyncJavaScript(js, arguments: [:], in: nil, contentWorld: .defaultClient)
                 
                 guard let rootDict = result as? [String: Any] else {
-                    logger.error("fetchUsageHistoryNow: 실패 - 결과가 dictionary가 아님")
+                    logger.error("fetchUsageHistoryNow: failed - result is not dictionary")
                     self.lastHistoryFetchResult = self.usageHistory != nil ? .failedWithCache : .failedNoCache
                     return
                 }
@@ -1143,7 +1071,7 @@ final class StatusBarController: NSObject {
                 
                 guard let table = rootDict["table"] as? [String: Any],
                       let rows = table["rows"] as? [[String: Any]] else {
-                    logger.error("fetchUsageHistoryNow: 실패 - table/rows 파싱 실패")
+                    logger.error("fetchUsageHistoryNow: failed - failed to parse table/rows")
                     self.lastHistoryFetchResult = self.usageHistory != nil ? .failedWithCache : .failedNoCache
                     return
                 }
