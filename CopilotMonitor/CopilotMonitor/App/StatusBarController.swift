@@ -293,7 +293,7 @@ final class StatusBarController: NSObject {
     }
     
     private func fetchUsage() {
-        logger.info("fetchUsage 시작, isFetching: \(self.isFetching)")
+        logger.info("fetchUsage started, isFetching: \(self.isFetching)")
         guard !isFetching else { return }
         isFetching = true
         statusBarIconView.showLoading()
@@ -361,11 +361,11 @@ final class StatusBarController: NSObject {
                let data = jsonString.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let id = json["id"] as? Int {
-                logger.info("fetchUsage: API ID 확보 성공 - \(id)")
+                logger.info("fetchUsage: API ID obtained successfully - \(id)")
                 return String(id)
             }
         } catch {
-            logger.error("fetchUsage: API 호출 중 에러 - \(error.localizedDescription)")
+            logger.error("fetchUsage: Error during API call - \(error.localizedDescription)")
         }
         
         return nil
@@ -390,7 +390,7 @@ final class StatusBarController: NSObject {
         """
         
         if let extracted = try? await evalJSONString(extractionJS, in: webView) {
-            logger.info("fetchUsage: DOM에서 customerId 추출 성공 - \(extracted)")
+            logger.info("fetchUsage: customerId extracted from DOM successfully - \(extracted)")
             return extracted
         }
         
@@ -414,7 +414,7 @@ final class StatusBarController: NSObject {
         
         for pattern in patterns {
             if let customerId = extractCustomerIdWithPattern(pattern, from: html) {
-                logger.info("fetchUsage: HTML에서 ID 발견 - \(customerId)")
+                logger.info("fetchUsage: ID found in HTML - \(customerId)")
                 return customerId
             }
         }
@@ -466,7 +466,7 @@ final class StatusBarController: NSObject {
                 return true
             }
         } catch {
-            logger.error("fetchUsage: JS 실행 중 에러 - \(error.localizedDescription)")
+            logger.error("fetchUsage: Error during JS execution - \(error.localizedDescription)")
         }
         
         return false
@@ -480,7 +480,7 @@ final class StatusBarController: NSObject {
             dict = data
         }
         
-        logger.info("fetchUsage: 데이터 파싱 시도 (Keys: \(dict.keys.joined(separator: ", ")))")
+        logger.info("fetchUsage: Attempting data parsing (Keys: \(dict.keys.joined(separator: ", ")))")
         
         let netBilledAmount = parseDoubleValue(from: dict, keys: ["netBilledAmount", "net_billed_amount"])
         let netQuantity = parseDoubleValue(from: dict, keys: ["netQuantity", "net_quantity"])
@@ -1038,7 +1038,7 @@ final class StatusBarController: NSObject {
             return
         }
         
-        logger.info("fetchUsageHistoryNow: 시작, customerId=\(customerId)")
+        logger.info("fetchUsageHistoryNow: started, customerId=\(customerId)")
         
         let webView = AuthManager.shared.webView
         
@@ -1064,7 +1064,7 @@ final class StatusBarController: NSObject {
                 }
                 
                 if let error = rootDict["error"] as? String {
-                    logger.error("fetchUsageHistoryNow: 실패 - JS 에러: \(error)")
+                    logger.error("fetchUsageHistoryNow: failed - JS error: \(error)")
                     self.lastHistoryFetchResult = self.usageHistory != nil ? .failedWithCache : .failedNoCache
                     return
                 }
@@ -1115,10 +1115,10 @@ final class StatusBarController: NSObject {
                 self.lastHistoryFetchResult = .success
                 self.saveHistoryCache(history)
                 
-                logger.info("fetchUsageHistoryNow: 완료, days.count=\(history.days.count), totalRequests=\(history.totalRequests)")
+                logger.info("fetchUsageHistoryNow: completed, days.count=\(history.days.count), totalRequests=\(history.totalRequests)")
                 self.updateHistorySubmenu()
             } catch {
-                logger.error("fetchUsageHistoryNow: 실패 - \(error.localizedDescription)")
+                logger.error("fetchUsageHistoryNow: failed - \(error.localizedDescription)")
                 self.handleHistoryFetchFailure()
                 self.updateHistorySubmenu()
             }
