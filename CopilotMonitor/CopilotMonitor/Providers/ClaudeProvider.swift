@@ -17,10 +17,26 @@ struct ClaudeUsageResponse: Codable {
         }
     }
     
+    struct ExtraUsage: Codable {
+        let is_enabled: Bool?
+        
+        enum CodingKeys: String, CodingKey {
+            case is_enabled = "is_enabled"
+        }
+    }
+    
+    let five_hour: UsageWindow?
     let seven_day: UsageWindow?
+    let seven_day_sonnet: UsageWindow?
+    let seven_day_opus: UsageWindow?
+    let extra_usage: ExtraUsage?
     
     enum CodingKeys: String, CodingKey {
+        case five_hour = "five_hour"
         case seven_day = "seven_day"
+        case seven_day_sonnet = "seven_day_sonnet"
+        case seven_day_opus = "seven_day_opus"
+        case extra_usage = "extra_usage"
     }
 }
 
@@ -100,14 +116,21 @@ final class ClaudeProvider: ProviderProtocol {
             // Calculate remaining percentage (100 - utilization)
             let remaining = 100 - utilization
             
-            // Parse reset time
-            var resetDate: Date? = nil
-            if let resetsAtString = sevenDay.resets_at {
-                let formatter = ISO8601DateFormatter()
-                resetDate = formatter.date(from: resetsAtString)
-            }
+            // Parse reset times using ISO8601DateFormatter
+            let dateFormatter = ISO8601DateFormatter()
             
-            logger.info("Claude usage fetched: \(utilization)% used, resets at \(resetDate?.description ?? "unknown")")
+            let fiveHourReset = response.five_hour?.resets_at.flatMap { dateFormatter.date(from: $0) }
+            let sevenDayReset = sevenDay.resets_at.flatMap { dateFormatter.date(from: $0) }
+            
+            // Extract utilization percentages for each window
+            let fiveHourUsage = response.five_hour?.utilization
+            let sonnetUsage = response.seven_day_sonnet?.utilization
+            let opusUsage = response.seven_day_opus?.utilization
+            
+            // Extract extra usage enabled status
+            let extraUsageEnabled = response.extra_usage?.is_enabled
+            
+            logger.info("Claude usage fetched: 7d=\(utilization)%, 5h=\(fiveHourUsage?.description ?? "N/A")%, sonnet=\(sonnetUsage?.description ?? "N/A")%, opus=\(opusUsage?.description ?? "N/A")%")
             
             // Return as quota-based usage with remaining percentage as Int
             // Note: ProviderUsage.quotaBased expects Int, so we convert percentage to Int
@@ -116,7 +139,19 @@ final class ClaudeProvider: ProviderProtocol {
                 entitlement: 100,
                 overagePermitted: false
             )
-            return ProviderResult(usage: usage, details: nil)
+            
+            // Populate DetailedUsage with all available fields
+            let details = DetailedUsage(
+                fiveHourUsage: fiveHourUsage,
+                fiveHourReset: fiveHourReset,
+                sevenDayUsage: utilization,
+                sevenDayReset: sevenDayReset,
+                sonnetUsage: sonnetUsage,
+                opusUsage: opusUsage,
+                extraUsageEnabled: extraUsageEnabled
+            )
+            
+            return ProviderResult(usage: usage, details: details)
         } catch let error as DecodingError {
             logger.error("Failed to decode Claude response: \(error.localizedDescription)")
             throw ProviderError.decodingError("Invalid response format: \(error.localizedDescription)")
