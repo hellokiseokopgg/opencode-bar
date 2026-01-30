@@ -1036,9 +1036,9 @@ final class StatusBarController: NSObject {
                   item.image = iconForProvider(identifier)
                   item.tag = 999
                  
-                 if let details = result.details, details.hasAnyValue {
-                     item.submenu = createDetailSubmenu(details)
-                 }
+                  if let details = result.details, details.hasAnyValue {
+                      item.submenu = createDetailSubmenu(details, identifier: identifier)
+                  }
                  
                  menu.insertItem(item, at: insertIndex)
                  insertIndex += 1
@@ -1154,8 +1154,19 @@ final class StatusBarController: NSObject {
         return tinted
     }
     
-    private func createDetailSubmenu(_ details: DetailedUsage) -> NSMenu {
+    private func createDetailSubmenu(_ details: DetailedUsage, identifier: ProviderIdentifier) -> NSMenu {
         let submenu = NSMenu()
+        
+        // Add provider-specific details based on identifier
+        switch identifier {
+        case .openRouter:
+            if let remaining = details.creditsRemaining, let total = details.creditsTotal {
+                let percent = total > 0 ? (remaining / total) * 100 : 0
+                submenu.addItem(NSMenuItem(title: String(format: "Credits: $%.0f/$%.0f (%.0f%%)", remaining, total, percent), action: nil, keyEquivalent: ""))
+            }
+        default:
+            break
+        }
         
         if let daily = details.dailyUsage {
             let item = NSMenuItem(title: String(format: "Daily: $%.2f", daily), action: nil, keyEquivalent: "")
