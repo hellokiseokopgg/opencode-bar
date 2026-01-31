@@ -686,7 +686,7 @@ final class StatusBarController: NSObject {
          
           let total = calculatePayAsYouGoTotal(providerResults: providerResults, copilotUsage: currentUsage)
           let payAsYouGoHeader = NSMenuItem()
-          payAsYouGoHeader.view = createHeaderView(title: String(format: "Pay-as-you-go    $%.2f", total))
+          payAsYouGoHeader.view = createHeaderView(title: String(format: "Pay-as-you-go: $%.2f", total))
           payAsYouGoHeader.tag = 999
           menu.insertItem(payAsYouGoHeader, at: insertIndex)
           insertIndex += 1
@@ -697,7 +697,7 @@ final class StatusBarController: NSObject {
             if let copilotUsage = currentUsage {
                 hasPayAsYouGo = true
                let addOnItem = NSMenuItem(
-                   title: String(format: "Copilot Add-on    $%.2f", copilotUsage.netBilledAmount),
+                   title: String(format: "Copilot Add-on ($%.2f)", copilotUsage.netBilledAmount),
                    action: nil,
                    keyEquivalent: ""
                )
@@ -759,7 +759,7 @@ final class StatusBarController: NSObject {
                         hasPayAsYouGo = true
                         let costValue = cost ?? 0.0
                         let item = NSMenuItem(
-                            title: String(format: "%@    $%.2f", identifier.displayName, costValue),
+                            title: String(format: "%@ ($%.2f)", identifier.displayName, costValue),
                             action: nil, keyEquivalent: ""
                         )
                         item.image = iconForProvider(identifier)
@@ -774,7 +774,7 @@ final class StatusBarController: NSObject {
                    }
                 } else if loadingProviders.contains(identifier) {
                     hasPayAsYouGo = true
-                    let item = NSMenuItem(title: "\(identifier.displayName)    Loading...", action: nil, keyEquivalent: "")
+                    let item = NSMenuItem(title: "\(identifier.displayName) (Loading...)", action: nil, keyEquivalent: "")
                     item.image = iconForProvider(identifier)
                     item.isEnabled = false
                     item.tag = 999
@@ -817,7 +817,7 @@ final class StatusBarController: NSObject {
               let percentage = limit > 0 ? (Double(remaining) / Double(limit)) * 100 : 0
               
               let quotaItem = NSMenuItem(
-                  title: String(format: "Copilot    %.0f%% remaining", percentage),
+                  title: String(format: "Copilot (%.0f%% remaining)", percentage),
                   action: nil,
                   keyEquivalent: ""
               )
@@ -889,7 +889,7 @@ final class StatusBarController: NSObject {
                     }
                  } else if loadingProviders.contains(identifier) {
                       hasQuota = true
-                      let item = NSMenuItem(title: "\(identifier.displayName)    Loading...", action: nil, keyEquivalent: "")
+                      let item = NSMenuItem(title: "\(identifier.displayName) (Loading...)", action: nil, keyEquivalent: "")
                       item.image = iconForProvider(identifier)
                       item.isEnabled = false
                       item.tag = 999
@@ -908,8 +908,8 @@ final class StatusBarController: NSObject {
                         hasQuota = true
                         let accountNumber = account.accountIndex + 1
                         let title = geminiAccounts.count > 1
-                            ? String(format: "Gemini CLI (#%d)    %.0f%% remaining", accountNumber, account.remainingPercentage)
-                            : String(format: "Gemini CLI    %.0f%% remaining", account.remainingPercentage)
+                            ? String(format: "Gemini CLI #%d (%.0f%% remaining)", accountNumber, account.remainingPercentage)
+                            : String(format: "Gemini CLI (%.0f%% remaining)", account.remainingPercentage)
                         
                         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
                         item.image = iconForProvider(.geminiCLI)
@@ -925,7 +925,7 @@ final class StatusBarController: NSObject {
                     }
                 } else if loadingProviders.contains(.geminiCLI) {
                     hasQuota = true
-                    let item = NSMenuItem(title: "Gemini CLI    Loading...", action: nil, keyEquivalent: "")
+                    let item = NSMenuItem(title: "Gemini CLI (Loading...)", action: nil, keyEquivalent: "")
                     item.image = iconForProvider(.geminiCLI)
                     item.isEnabled = false
                     item.tag = 999
@@ -997,7 +997,7 @@ final class StatusBarController: NSObject {
     }
     
     private func createQuotaMenuItem(identifier: ProviderIdentifier, percentage: Double) -> NSMenuItem {
-        let title = String(format: "%@    %.0f%% remaining", identifier.displayName, percentage)
+        let title = String(format: "%@ (%.0f%% remaining)", identifier.displayName, percentage)
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.image = iconForProvider(identifier)
         
