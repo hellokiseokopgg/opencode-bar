@@ -3,11 +3,64 @@ import os.log
 
 private let logger = Logger(subsystem: "com.opencodeproviders", category: "OpenCodeZenProvider")
 
+private func debugLog(_ message: String) {
+    let msg = "[\(Date())] OpenCodeZen: \(message)\n"
+    if let data = msg.data(using: .utf8) {
+        let path = "/tmp/opencode_debug.log"
+        if FileManager.default.fileExists(atPath: path) {
+            if let handle = FileHandle(forWritingAtPath: path) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                handle.closeFile()
+            }
+        } else {
+            try? data.write(to: URL(fileURLWithPath: path))
+        }
+    }
+}
+
+/// Notification sent when OpenCode Zen history is updated during progressive loading
+extension Notification.Name {
+    static let openCodeZenHistoryUpdated = Notification.Name("openCodeZenHistoryUpdated")
+}
+
 /// Provider for OpenCode Zen usage tracking via CLI stats
 /// Uses pay-as-you-go billing model with cost-based tracking
+/// Implements progressive loading: fetches days 1-30 sequentially with real-time UI updates
 final class OpenCodeZenProvider: ProviderProtocol {
     let identifier: ProviderIdentifier = .openCodeZen
     let type: ProviderType = .payAsYouGo
+    
+    // MARK: - Singleton for state management
+    
+    /// Shared instance for accessing loading state
+    static let shared = OpenCodeZenProvider()
+    
+    /// Current loading state for UI display
+    struct LoadingState {
+        var isLoading: Bool = false
+        var currentDay: Int = 0
+        var totalDays: Int = 30
+        var dailyHistory: [DailyUsage] = []
+        var lastError: String? = nil
+    }
+    
+    /// Thread-safe access to loading state
+    private static var _loadingState = LoadingState()
+    private static let stateLock = NSLock()
+    
+    static var loadingState: LoadingState {
+        get {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            return _loadingState
+        }
+        set {
+            stateLock.lock()
+            _loadingState = newValue
+            stateLock.unlock()
+        }
+    }
     
     // MARK: - Configuration
     
@@ -32,10 +85,11 @@ final class OpenCodeZenProvider: ProviderProtocol {
     private struct DailyHistoryCache: Codable {
         let date: Date
         let cost: Double
+        let cumulativeCost: Double  // Cumulative cost up to this day
         let fetchedAt: Date
     }
     
-    private let cacheKey = "opencodezen.dailyhistory.cache"
+    private let cacheKey = "opencodezen.dailyhistory.cache.v2"
     
     // MARK: - ProviderProtocol
     
@@ -48,19 +102,27 @@ final class OpenCodeZenProvider: ProviderProtocol {
         let output = try await runOpenCodeStats(days: 7)
         let stats = try parseStats(output)
         
-        let dailyHistory = await fetchDailyHistory()
+        let cachedHistory = loadDailyHistoryFromCache()
+        
+        if !OpenCodeZenProvider.loadingState.isLoading {
+            Task.detached { [weak self] in
+                await self?.fetchDailyHistoryProgressively()
+            }
+        } else {
+            debugLog("Progressive loading already in progress, skipping")
+        }
         
         let monthlyLimit = 1000.0
         let utilization = min((stats.totalCost / monthlyLimit) * 100, 100)
         
-        logger.info("Successfully fetched OpenCode Zen usage: $\(String(format: "%.2f", stats.totalCost)) (\(String(format: "%.1f", utilization))% of $\(monthlyLimit) limit)")
+        logger.info("OpenCode Zen: $\(String(format: "%.2f", stats.totalCost)) (\(String(format: "%.1f", utilization))% of $\(monthlyLimit) limit)")
         
         let details = DetailedUsage(
             modelBreakdown: stats.modelCosts,
             sessions: stats.sessions,
             messages: stats.messages,
             avgCostPerDay: stats.avgCostPerDay,
-            dailyHistory: dailyHistory,
+            dailyHistory: cachedHistory,
             monthlyCost: stats.totalCost
         )
         
@@ -70,79 +132,145 @@ final class OpenCodeZenProvider: ProviderProtocol {
         )
     }
     
-    private func fetchDailyHistory() async -> [DailyUsage] {
+    // MARK: - Progressive Daily History Loading
+    
+    /// Fetches daily history progressively (day 1 → day 2 → ... → day 30)
+    /// Updates UI in real-time via NotificationCenter
+    private func fetchDailyHistoryProgressively() async {
+        killExistingOpenCodeProcesses()
+        
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        guard let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: today) else {
-            return []
-        }
         
-        // Load cached data for days older than 2 days ago
-        var cachedData: [Date: Double] = [:]
-        let cache = loadHistoryCache()
-        for item in cache {
-            let itemDate = calendar.startOfDay(for: item.date)
-            if itemDate < twoDaysAgo {
-                cachedData[itemDate] = item.cost
-            }
-        }
+        OpenCodeZenProvider.loadingState = LoadingState(
+            isLoading: true,
+            currentDay: 0,
+            totalDays: 30,
+            dailyHistory: [],
+            lastError: nil
+        )
         
-        // Only fetch today and yesterday (days 1 and 2)
-        var cumulativeCosts: [Int: Double] = [:]
-        await withTaskGroup(of: (Int, Double?).self) { group in
-            for days in 1...2 {
-                group.addTask {
-                    do {
-                        let output = try await self.runOpenCodeStats(days: days)
-                        if let cost = self.parseTotalCost(output) {
-                            return (days, cost)
-                        }
-                    } catch {
-                        logger.warning("Failed to fetch stats for \(days) days: \(error.localizedDescription)")
-                    }
-                    return (days, nil)
-                }
-            }
-            for await (days, cost) in group {
-                if let cost = cost {
-                    cumulativeCosts[days] = cost
-                }
-            }
-        }
-        
-        // Build daily history and update cache
+        // Load existing cache
+        var cache = loadHistoryCache()
+        var cumulativeCosts: [Int: Double] = [:]  // day -> cumulative cost
         var dailyHistory: [DailyUsage] = []
-        var newCache: [DailyHistoryCache] = []
         
+        // Check which days need fetching (cache older than 1 hour needs refresh)
+        let cacheValidThreshold = Date().addingTimeInterval(-3600)  // 1 hour
+        
+        logger.info("OpenCodeZen: Starting progressive fetch for 30 days")
+        debugLog("Starting progressive fetch for 30 days")
+        
+        // Fetch days 1-30 sequentially
         for day in 1...30 {
-            guard let date = calendar.date(byAdding: .day, value: -(day - 1), to: today) else { continue }
-            let dateStart = calendar.startOfDay(for: date)
-            var dailyCost: Double
+            OpenCodeZenProvider.loadingState.currentDay = day
             
-            if day <= 2 {
-                // Today/yesterday: calculate from fresh data
-                let currentCumulative = cumulativeCosts[day] ?? 0
-                let previousCumulative = day > 1 ? (cumulativeCosts[day - 1] ?? 0) : 0
-                dailyCost = max(0, currentCumulative - previousCumulative)
-                newCache.append(DailyHistoryCache(date: dateStart, cost: dailyCost, fetchedAt: Date()))
+            guard let targetDate = calendar.date(byAdding: .day, value: -(day - 1), to: today) else {
+                continue
+            }
+            let dateStart = calendar.startOfDay(for: targetDate)
+            
+            // Check cache for this specific day
+            if let cached = cache.first(where: { 
+                calendar.isDate(calendar.startOfDay(for: $0.date), inSameDayAs: dateStart) &&
+                $0.fetchedAt > cacheValidThreshold
+            }) {
+                // Use cached value
+                cumulativeCosts[day] = cached.cumulativeCost
+                let dailyCost = day == 1 ? cached.cumulativeCost : max(0, cached.cumulativeCost - (cumulativeCosts[day - 1] ?? 0))
+                
+                dailyHistory.append(DailyUsage(
+                    date: targetDate,
+                    includedRequests: 0,
+                    billedRequests: 0,
+                    grossAmount: dailyCost,
+                    billedAmount: dailyCost
+                ))
+                
+                logger.debug("Day \(day): $\(String(format: "%.2f", dailyCost)) (cached)")
             } else {
-                // Older days: load from cache
-                dailyCost = cachedData[dateStart] ?? 0
-                if let existingCacheItem = cache.first(where: { calendar.startOfDay(for: $0.date) == dateStart }) {
-                    newCache.append(existingCacheItem)
+                do {
+                    let output = try await runOpenCodeStatsWithRetry(days: day)
+                    if let cumulativeCost = parseTotalCost(output) {
+                        cumulativeCosts[day] = cumulativeCost
+                        
+                        let previousCumulative = cumulativeCosts[day - 1] ?? 0
+                        let dailyCost = max(0, cumulativeCost - previousCumulative)
+                        
+                        cache.removeAll { calendar.isDate(calendar.startOfDay(for: $0.date), inSameDayAs: dateStart) }
+                        cache.append(DailyHistoryCache(
+                            date: dateStart,
+                            cost: dailyCost,
+                            cumulativeCost: cumulativeCost,
+                            fetchedAt: Date()
+                        ))
+                        
+                        dailyHistory.append(DailyUsage(
+                            date: targetDate,
+                            includedRequests: 0,
+                            billedRequests: 0,
+                            grossAmount: dailyCost,
+                            billedAmount: dailyCost
+                        ))
+                        
+                        logger.info("Day \(day): $\(String(format: "%.2f", dailyCost)) (cumulative: $\(String(format: "%.2f", cumulativeCost)))")
+                        debugLog("Day \(day): $\(String(format: "%.2f", dailyCost)) fetched")
+                    } else {
+                        logger.warning("Day \(day): failed to parse cost from output")
+                        debugLog("Day \(day): parse failed, skipping (no $0 placeholder)")
+                        OpenCodeZenProvider.loadingState.lastError = "Day \(day): parse error"
+                    }
+                } catch {
+                    logger.warning("Day \(day): fetch failed after retries - \(error.localizedDescription)")
+                    debugLog("Day \(day): failed after retries - \(error.localizedDescription)")
+                    OpenCodeZenProvider.loadingState.lastError = "Day \(day): \(error.localizedDescription)"
                 }
             }
             
+            // Update loading state with current history
+            OpenCodeZenProvider.loadingState.dailyHistory = dailyHistory
+            
+            // Notify UI to update
+            await MainActor.run {
+                NotificationCenter.default.post(name: .openCodeZenHistoryUpdated, object: nil)
+            }
+            
+            // Small delay to prevent CLI overload
+            try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+        }
+        
+        // Save cache
+        saveHistoryCache(cache)
+        
+        // Mark loading complete
+        OpenCodeZenProvider.loadingState.isLoading = false
+        
+        // Final UI update
+        await MainActor.run {
+            NotificationCenter.default.post(name: .openCodeZenHistoryUpdated, object: nil)
+        }
+        
+        logger.info("OpenCodeZen: Progressive fetch completed, \(dailyHistory.count) days loaded")
+    }
+    
+    /// Loads daily history from cache for immediate display
+    private func loadDailyHistoryFromCache() -> [DailyUsage] {
+        let cache = loadHistoryCache()
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        var dailyHistory: [DailyUsage] = []
+        
+        for item in cache.sorted(by: { $0.date > $1.date }).prefix(30) {
             dailyHistory.append(DailyUsage(
-                date: date,
+                date: item.date,
                 includedRequests: 0,
                 billedRequests: 0,
-                grossAmount: dailyCost,
-                billedAmount: dailyCost
+                grossAmount: item.cost,
+                billedAmount: item.cost
             ))
         }
         
-        saveHistoryCache(newCache)
         return dailyHistory
     }
     
@@ -162,12 +290,46 @@ final class OpenCodeZenProvider: ProviderProtocol {
     }
     
     private func saveHistoryCache(_ cache: [DailyHistoryCache]) {
-        if let data = try? JSONEncoder().encode(cache) {
+        // Keep only last 35 days of cache
+        let calendar = Calendar.current
+        let cutoffDate = calendar.date(byAdding: .day, value: -35, to: Date()) ?? Date()
+        let filteredCache = cache.filter { $0.date > cutoffDate }
+        
+        if let data = try? JSONEncoder().encode(filteredCache) {
             UserDefaults.standard.set(data, forKey: cacheKey)
         }
     }
     
     // MARK: - Private Helpers
+    
+    private func killExistingOpenCodeProcesses() {
+        let killProcess = Process()
+        killProcess.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        killProcess.arguments = ["-f", "opencode stats"]
+        try? killProcess.run()
+        killProcess.waitUntilExit()
+        debugLog("Killed existing opencode stats processes")
+    }
+    
+    private func runOpenCodeStatsWithRetry(days: Int, maxRetries: Int = 3) async throws -> String {
+        var lastError: Error?
+        
+        for attempt in 1...maxRetries {
+            do {
+                let output = try await runOpenCodeStats(days: days)
+                return output
+            } catch {
+                lastError = error
+                debugLog("Day \(days) attempt \(attempt)/\(maxRetries) failed: \(error.localizedDescription)")
+                
+                if attempt < maxRetries {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+            }
+        }
+        
+        throw lastError ?? ProviderError.networkError("Failed after \(maxRetries) retries")
+    }
     
     private func runOpenCodeStats(days: Int) async throws -> String {
         return try await withCheckedThrowingContinuation { continuation in
@@ -218,11 +380,8 @@ final class OpenCodeZenProvider: ProviderProtocol {
     }
     
     /// Parses opencode stats output using regex patterns
-    /// - Parameter output: Raw CLI output string
-    /// - Returns: Structured OpenCodeStats data
-    /// - Throws: ProviderError if parsing fails
     private func parseStats(_ output: String) throws -> OpenCodeStats {
-        // Parse Total Cost: │Total Cost\s+\$([0-9.]+)
+        // Parse Total Cost
         let totalCostPattern = #"│Total Cost\s+\$([0-9.]+)"#
         guard let totalCostMatch = output.range(of: totalCostPattern, options: .regularExpression) else {
             logger.error("Cannot parse total cost from output")
@@ -231,27 +390,23 @@ final class OpenCodeZenProvider: ProviderProtocol {
         let totalCostStr = String(output[totalCostMatch])
             .replacingOccurrences(of: #"│Total Cost\s+\$"#, with: "", options: .regularExpression)
         guard let totalCost = Double(totalCostStr) else {
-            logger.error("Invalid total cost value: \(totalCostStr)")
             throw ProviderError.decodingError("Invalid total cost value")
         }
         
-        // Parse Avg Cost/Day: │Avg Cost/Day\s+\$([0-9.]+)
+        // Parse Avg Cost/Day
         let avgCostPattern = #"│Avg Cost/Day\s+\$([0-9.]+)"#
         guard let avgCostMatch = output.range(of: avgCostPattern, options: .regularExpression) else {
-            logger.error("Cannot parse avg cost from output")
             throw ProviderError.decodingError("Cannot parse avg cost")
         }
         let avgCostStr = String(output[avgCostMatch])
             .replacingOccurrences(of: #"│Avg Cost/Day\s+\$"#, with: "", options: .regularExpression)
         guard let avgCost = Double(avgCostStr) else {
-            logger.error("Invalid avg cost value: \(avgCostStr)")
             throw ProviderError.decodingError("Invalid avg cost value")
         }
         
-        // Parse Sessions: │Sessions\s+([0-9,]+)
+        // Parse Sessions
         let sessionsPattern = #"│Sessions\s+([0-9,]+)"#
         guard let sessionsMatch = output.range(of: sessionsPattern, options: .regularExpression) else {
-            logger.error("Cannot parse sessions from output")
             throw ProviderError.decodingError("Cannot parse sessions")
         }
         let sessionsStr = String(output[sessionsMatch])
@@ -259,10 +414,9 @@ final class OpenCodeZenProvider: ProviderProtocol {
             .replacingOccurrences(of: ",", with: "")
         let sessions = Int(sessionsStr) ?? 0
         
-        // Parse Messages: │Messages\s+([0-9,]+)
+        // Parse Messages
         let messagesPattern = #"│Messages\s+([0-9,]+)"#
         guard let messagesMatch = output.range(of: messagesPattern, options: .regularExpression) else {
-            logger.error("Cannot parse messages from output")
             throw ProviderError.decodingError("Cannot parse messages")
         }
         let messagesStr = String(output[messagesMatch])
@@ -270,7 +424,7 @@ final class OpenCodeZenProvider: ProviderProtocol {
             .replacingOccurrences(of: ",", with: "")
         let messages = Int(messagesStr) ?? 0
         
-        // Parse Model costs: │ (\S+)\s+.*│\s+Cost\s+\$([0-9.]+)
+        // Parse Model costs
         var modelCosts: [String: Double] = [:]
         let modelPattern = #"│ (\S+)\s+.*│\s+Cost\s+\$([0-9.]+)"#
         do {
@@ -285,11 +439,8 @@ final class OpenCodeZenProvider: ProviderProtocol {
                     modelCosts[modelName] = cost
                 }
             }
-            
-            logger.debug("Parsed \(modelCosts.count) model costs")
         } catch {
             logger.warning("Failed to parse model costs: \(error.localizedDescription)")
-            // Non-fatal: continue without model breakdown
         }
         
         return OpenCodeStats(
@@ -300,5 +451,4 @@ final class OpenCodeZenProvider: ProviderProtocol {
             modelCosts: modelCosts
         )
     }
-    
 }

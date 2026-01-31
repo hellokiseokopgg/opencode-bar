@@ -289,6 +289,12 @@ final class StatusBarController: NSObject {
                 self?.historyFetchTimer = nil
             }
         }
+        NotificationCenter.default.addObserver(forName: .openCodeZenHistoryUpdated, object: nil, queue: .main) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                self?.updateMultiProviderMenu()
+            }
+        }
     }
     
     private func startRefreshTimer() {
@@ -695,14 +701,11 @@ final class StatusBarController: NSObject {
          insertIndex += 1
          
           let total = calculatePayAsYouGoTotal(providerResults: providerResults, copilotUsage: currentUsage)
-          let payAsYouGoHeader = NSMenuItem(
-              title: String(format: "Pay-as-you-go                    $%.2f", total),
-              action: nil, keyEquivalent: ""
-          )
-         payAsYouGoHeader.isEnabled = false
-         payAsYouGoHeader.tag = 999
-         menu.insertItem(payAsYouGoHeader, at: insertIndex)
-         insertIndex += 1
+          let payAsYouGoHeader = NSMenuItem()
+          payAsYouGoHeader.view = createHeaderView(title: String(format: "Pay-as-you-go    $%.2f", total))
+          payAsYouGoHeader.tag = 999
+          menu.insertItem(payAsYouGoHeader, at: insertIndex)
+          insertIndex += 1
          
          var hasPayAsYouGo = false
          
@@ -718,8 +721,12 @@ final class StatusBarController: NSObject {
                addOnItem.tag = 999
                
                let submenu = NSMenu()
-               submenu.addItem(NSMenuItem(title: String(format: "Overage Requests: %.0f", copilotUsage.netQuantity), action: nil, keyEquivalent: ""))
-               submenu.addItem(NSMenuItem(title: String(format: "Billed Amount: $%.2f", copilotUsage.netBilledAmount), action: nil, keyEquivalent: ""))
+               let overageItem = NSMenuItem()
+               overageItem.view = createDisabledLabelView(text: String(format: "Overage Requests: %.0f", copilotUsage.netQuantity))
+               submenu.addItem(overageItem)
+               let billedItem = NSMenuItem()
+               billedItem.view = createDisabledLabelView(text: String(format: "Billed Amount: $%.2f", copilotUsage.netBilledAmount))
+               submenu.addItem(billedItem)
                
                  submenu.addItem(NSMenuItem.separator())
                  let historyItem = NSMenuItem(title: "Usage History", action: nil, keyEquivalent: "")
@@ -759,21 +766,20 @@ final class StatusBarController: NSObject {
                    }
                 } else if loadingProviders.contains(identifier) {
                     hasPayAsYouGo = true
-                    let item = NSMenuItem(
-                        title: String(format: "%@    Loading...", identifier.displayName),
-                        action: nil, keyEquivalent: ""
+                    let item = NSMenuItem()
+                    item.view = createDisabledLabelView(
+                        text: "\(identifier.displayName)    Loading...",
+                        icon: iconForProvider(identifier)
                     )
-                    item.image = iconForProvider(identifier)
                     item.tag = 999
-                    item.isEnabled = false
                     menu.insertItem(item, at: insertIndex)
                     insertIndex += 1
                 }
            }
         
         if !hasPayAsYouGo {
-            let noItem = NSMenuItem(title: "  No providers", action: nil, keyEquivalent: "")
-            noItem.isEnabled = false
+            let noItem = NSMenuItem()
+            noItem.view = createDisabledLabelView(text: "No providers")
             noItem.tag = 999
             menu.insertItem(noItem, at: insertIndex)
             insertIndex += 1
@@ -784,8 +790,8 @@ final class StatusBarController: NSObject {
         menu.insertItem(separator2, at: insertIndex)
         insertIndex += 1
         
-         let quotaHeader = NSMenuItem(title: "Quota Status", action: nil, keyEquivalent: "")
-         quotaHeader.isEnabled = false
+         let quotaHeader = NSMenuItem()
+         quotaHeader.view = createHeaderView(title: "Quota Status")
          quotaHeader.tag = 999
          menu.insertItem(quotaHeader, at: insertIndex)
          insertIndex += 1
@@ -807,10 +813,16 @@ final class StatusBarController: NSObject {
               let filledBlocks = Int((Double(used) / Double(max(limit, 1))) * 10)
               let emptyBlocks = 10 - filledBlocks
               let progressBar = String(repeating: "═", count: filledBlocks) + String(repeating: "░", count: emptyBlocks)
-              submenu.addItem(NSMenuItem(title: "[\(progressBar)] \(used)/\(limit)", action: nil, keyEquivalent: ""))
+              let progressItem = NSMenuItem()
+              progressItem.view = createDisabledLabelView(text: "[\(progressBar)] \(used)/\(limit)")
+              submenu.addItem(progressItem)
               
-              submenu.addItem(NSMenuItem(title: "This Month: \(used) used", action: nil, keyEquivalent: ""))
-              submenu.addItem(NSMenuItem(title: "Free Quota: \(limit)", action: nil, keyEquivalent: ""))
+              let usedItem = NSMenuItem()
+              usedItem.view = createDisabledLabelView(text: "This Month: \(used) used")
+              submenu.addItem(usedItem)
+              let freeItem = NSMenuItem()
+              freeItem.view = createDisabledLabelView(text: "Free Quota: \(limit)")
+              submenu.addItem(freeItem)
               quotaItem.submenu = submenu
               
               menu.insertItem(quotaItem, at: insertIndex)
@@ -835,23 +847,22 @@ final class StatusBarController: NSObject {
                        menu.insertItem(item, at: insertIndex)
                        insertIndex += 1
                    }
-               } else if loadingProviders.contains(identifier) {
-                   hasQuota = true
-                   let item = NSMenuItem(
-                       title: String(format: "%@    Loading...", identifier.displayName),
-                       action: nil, keyEquivalent: ""
-                   )
-                   item.image = iconForProvider(identifier)
-                   item.tag = 999
-                   item.isEnabled = false
-                   menu.insertItem(item, at: insertIndex)
-                   insertIndex += 1
-               }
-           }
+                } else if loadingProviders.contains(identifier) {
+                    hasQuota = true
+                    let item = NSMenuItem()
+                    item.view = createDisabledLabelView(
+                        text: "\(identifier.displayName)    Loading...",
+                        icon: iconForProvider(identifier)
+                    )
+                    item.tag = 999
+                    menu.insertItem(item, at: insertIndex)
+                    insertIndex += 1
+                }
+            }
         
         if !hasQuota {
-            let noItem = NSMenuItem(title: "  No providers", action: nil, keyEquivalent: "")
-            noItem.isEnabled = false
+            let noItem = NSMenuItem()
+            noItem.view = createDisabledLabelView(text: "No providers")
             noItem.tag = 999
             menu.insertItem(noItem, at: insertIndex)
             insertIndex += 1
@@ -920,6 +931,76 @@ final class StatusBarController: NSObject {
         rect.fill(using: .sourceAtop)
         tinted.unlockFocus()
         return tinted
+    }
+    
+    // MARK: - Custom Menu Item Views
+    
+    func createHeaderView(title: String) -> NSView {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 250, height: 22))
+        
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+        label.textColor = NSColor.labelColor.withAlphaComponent(0.5)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+        view.addSubview(label)
+        
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+        
+        return view
+    }
+    
+    func createDisabledLabelView(
+        text: String,
+        icon: NSImage? = nil,
+        font: NSFont? = nil,
+        underline: Bool = false,
+        monospaced: Bool = false
+    ) -> NSView {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 22))
+        
+        var leadingOffset: CGFloat = 14
+        
+        if let icon = icon {
+            let imageView = NSImageView(frame: NSRect(x: 14, y: 3, width: 16, height: 16))
+            imageView.image = icon
+            imageView.imageScaling = .scaleProportionallyUpOrDown
+            view.addSubview(imageView)
+            leadingOffset = 36
+        }
+        
+        let label = NSTextField(labelWithString: "")
+        
+        var attrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.secondaryLabelColor
+        ]
+        
+        if let customFont = font {
+            attrs[.font] = customFont
+        } else if monospaced {
+            attrs[.font] = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        } else {
+            attrs[.font] = NSFont.systemFont(ofSize: 13)
+        }
+        
+        if underline {
+            attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        }
+        
+        label.attributedStringValue = NSAttributedString(string: text, attributes: attrs)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+        view.addSubview(label)
+        
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: leadingOffset),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+        
+        return view
     }
     
 
@@ -1212,9 +1293,11 @@ final class StatusBarController: NSObject {
         
         if state.hasNoData {
             debugLog("updateHistorySubmenu: hasNoData=true, returning early")
-            let item = NSMenuItem(title: "No data", action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "tray", accessibilityDescription: "No data")
-            item.isEnabled = false
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: "No data",
+                icon: NSImage(systemSymbolName: "tray", accessibilityDescription: "No data")
+            )
             historySubmenu.addItem(item)
             return
         }
@@ -1229,13 +1312,11 @@ final class StatusBarController: NSObject {
             debugLog("updateHistorySubmenu: creating monthlyText")
             let monthlyText = "Predicted EOM: \(formatter.string(from: NSNumber(value: prediction.predictedMonthlyRequests)) ?? "0") requests"
             debugLog("updateHistorySubmenu: creating monthlyItem")
-            let monthlyItem = NSMenuItem(title: monthlyText, action: nil, keyEquivalent: "")
-            monthlyItem.image = NSImage(systemSymbolName: "chart.line.uptrend.xyaxis", accessibilityDescription: "Predicted EOM")
-            monthlyItem.isEnabled = false
-            debugLog("updateHistorySubmenu: setting attributedTitle")
-            monthlyItem.attributedTitle = NSAttributedString(
-                string: monthlyText,
-                attributes: [.font: NSFont.boldSystemFont(ofSize: 13)]
+            let monthlyItem = NSMenuItem()
+            monthlyItem.view = createDisabledLabelView(
+                text: monthlyText,
+                icon: NSImage(systemSymbolName: "chart.line.uptrend.xyaxis", accessibilityDescription: "Predicted EOM"),
+                font: NSFont.boldSystemFont(ofSize: 13)
             )
             debugLog("updateHistorySubmenu: adding monthlyItem to submenu")
             historySubmenu.addItem(monthlyItem)
@@ -1243,28 +1324,29 @@ final class StatusBarController: NSObject {
             
             if prediction.predictedBilledAmount > 0 {
                 let costText = String(format: "Predicted Add-on: $%.2f", prediction.predictedBilledAmount)
-                let costItem = NSMenuItem(title: costText, action: nil, keyEquivalent: "")
-                costItem.image = NSImage(systemSymbolName: "dollarsign.circle", accessibilityDescription: "Predicted Add-on")
-                costItem.isEnabled = false
-                costItem.attributedTitle = NSAttributedString(
-                    string: costText,
-                    attributes: [
-                        .font: NSFont.boldSystemFont(ofSize: 13),
-                        .underlineStyle: NSUnderlineStyle.single.rawValue
-                    ]
+                let costItem = NSMenuItem()
+                costItem.view = createDisabledLabelView(
+                    text: costText,
+                    icon: NSImage(systemSymbolName: "dollarsign.circle", accessibilityDescription: "Predicted Add-on"),
+                    font: NSFont.boldSystemFont(ofSize: 13),
+                    underline: true
                 )
                 historySubmenu.addItem(costItem)
             }
             
             if prediction.confidenceLevel == .low {
-                let confItem = NSMenuItem(title: "Low prediction accuracy", action: nil, keyEquivalent: "")
-                confItem.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Low accuracy")
-                confItem.isEnabled = false
+                let confItem = NSMenuItem()
+                confItem.view = createDisabledLabelView(
+                    text: "Low prediction accuracy",
+                    icon: NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Low accuracy")
+                )
                 historySubmenu.addItem(confItem)
             } else if prediction.confidenceLevel == .medium {
-                let confItem = NSMenuItem(title: "Medium prediction accuracy", action: nil, keyEquivalent: "")
-                confItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Medium accuracy")
-                confItem.isEnabled = false
+                let confItem = NSMenuItem()
+                confItem.view = createDisabledLabelView(
+                    text: "Medium prediction accuracy",
+                    icon: NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Medium accuracy")
+                )
                 historySubmenu.addItem(confItem)
             }
             
@@ -1277,9 +1359,11 @@ final class StatusBarController: NSObject {
         
         if state.isStale {
             debugLog("updateHistorySubmenu: data is stale, adding stale item")
-            let staleItem = NSMenuItem(title: "Data is stale", action: nil, keyEquivalent: "")
-            staleItem.image = NSImage(systemSymbolName: "clock.badge.exclamationmark", accessibilityDescription: "Data is stale")
-            staleItem.isEnabled = false
+            let staleItem = NSMenuItem()
+            staleItem.view = createDisabledLabelView(
+                text: "Data is stale",
+                icon: NSImage(systemSymbolName: "clock.badge.exclamationmark", accessibilityDescription: "Data is stale")
+            )
             historySubmenu.addItem(staleItem)
             debugLog("updateHistorySubmenu: stale item added")
         }
@@ -1305,12 +1389,8 @@ final class StatusBarController: NSObject {
                 let reqStr = numberFormatter.string(from: NSNumber(value: day.totalRequests)) ?? "0"
                 let label = isToday ? "\(dateStr) (Today): \(reqStr) req" : "\(dateStr): \(reqStr) req"
                 
-                let item = NSMenuItem(title: label, action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                item.attributedTitle = NSAttributedString(
-                    string: label,
-                    attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)]
-                )
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: label, monospaced: true)
                 historySubmenu.addItem(item)
             }
             debugLog("updateHistorySubmenu: all history items added")

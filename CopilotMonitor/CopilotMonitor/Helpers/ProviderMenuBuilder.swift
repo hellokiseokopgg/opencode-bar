@@ -10,92 +10,152 @@ extension StatusBarController {
         case .openRouter:
             if let remaining = details.creditsRemaining, let total = details.creditsTotal {
                 let percent = total > 0 ? (remaining / total) * 100 : 0
-                submenu.addItem(NSMenuItem(title: String(format: "Credits: $%.0f/$%.0f (%.0f%%)", remaining, total, percent), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "Credits: $%.0f/$%.0f (%.0f%%)", remaining, total, percent))
+                submenu.addItem(item)
             }
             if let daily = details.dailyUsage {
-                submenu.addItem(NSMenuItem(title: String(format: "Daily: $%.2f", daily), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "Daily: $%.2f", daily))
+                submenu.addItem(item)
             }
             if let weekly = details.weeklyUsage {
-                submenu.addItem(NSMenuItem(title: String(format: "Weekly: $%.2f", weekly), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "Weekly: $%.2f", weekly))
+                submenu.addItem(item)
             }
             
         case .openCodeZen:
             if let avg = details.avgCostPerDay {
-                submenu.addItem(NSMenuItem(title: String(format: "Avg/Day: $%.2f", avg), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "Avg/Day: $%.2f", avg))
+                submenu.addItem(item)
             }
             if let sessions = details.sessions {
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: sessions), number: .decimal)
-                submenu.addItem(NSMenuItem(title: "Sessions: \(formatted)", action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: "Sessions: \(formatted)")
+                submenu.addItem(item)
             }
             if let messages = details.messages {
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: messages), number: .decimal)
-                submenu.addItem(NSMenuItem(title: "Messages: \(formatted)", action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: "Messages: \(formatted)")
+                submenu.addItem(item)
             }
             
             if let models = details.modelBreakdown, !models.isEmpty {
                 submenu.addItem(NSMenuItem.separator())
-                let headerItem = NSMenuItem(title: "Top Models:", action: nil, keyEquivalent: "")
-                headerItem.isEnabled = false
+                let headerItem = NSMenuItem()
+                headerItem.view = createHeaderView(title: "Top Models")
                 submenu.addItem(headerItem)
                 
                 let sortedModels = models.sorted { $0.value > $1.value }.prefix(5)
                 for (model, cost) in sortedModels {
                     let shortName = model.components(separatedBy: "/").last ?? model
-                    submenu.addItem(NSMenuItem(title: String(format: "  %@: $%.2f", shortName, cost), action: nil, keyEquivalent: ""))
+                    let item = NSMenuItem()
+                    item.view = createDisabledLabelView(text: String(format: "  %@: $%.2f", shortName, cost))
+                    submenu.addItem(item)
                 }
             }
             
-            if let history = details.dailyHistory, !history.isEmpty {
-                submenu.addItem(NSMenuItem.separator())
-                let historyItem = NSMenuItem(title: "Usage History", action: nil, keyEquivalent: "")
-                historyItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Usage History")
-                let historySubmenu = NSMenu()
-                
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "MMM d"
-                
-                for day in history.prefix(7) {
+            submenu.addItem(NSMenuItem.separator())
+            let historyItem = NSMenuItem(title: "Usage History", action: nil, keyEquivalent: "")
+            historyItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Usage History")
+            let historySubmenu = NSMenu()
+            
+            let loadingState = OpenCodeZenProvider.loadingState
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MMM d"
+            
+            let historyToDisplay: [DailyUsage]
+            if loadingState.isLoading || !loadingState.dailyHistory.isEmpty {
+                historyToDisplay = loadingState.dailyHistory
+            } else if let history = details.dailyHistory {
+                historyToDisplay = Array(history.prefix(30))
+            } else {
+                historyToDisplay = []
+            }
+            
+            if historyToDisplay.isEmpty && !loadingState.isLoading {
+                let noDataItem = NSMenuItem()
+                noDataItem.view = createDisabledLabelView(text: "No history data")
+                historySubmenu.addItem(noDataItem)
+            } else {
+                for day in historyToDisplay.prefix(30) {
                     let cost = day.billedAmount
                     let title = String(format: "%@: $%.2f", dateFormatter.string(from: day.date), cost)
-                    let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-                    item.isEnabled = false
-                    item.attributedTitle = NSAttributedString(
-                        string: title,
-                        attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)]
-                    )
+                    let item = NSMenuItem()
+                    item.view = createDisabledLabelView(text: title, monospaced: true)
                     historySubmenu.addItem(item)
                 }
                 
-                historyItem.submenu = historySubmenu
-                submenu.addItem(historyItem)
+                if loadingState.isLoading {
+                    historySubmenu.addItem(NSMenuItem.separator())
+                    let loadingText = "Loading day \(loadingState.currentDay)/\(loadingState.totalDays)..."
+                    let loadingItem = NSMenuItem()
+                    loadingItem.view = createDisabledLabelView(
+                        text: loadingText,
+                        icon: NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: "Loading"),
+                        font: NSFont.systemFont(ofSize: 11, weight: .medium)
+                    )
+                    historySubmenu.addItem(loadingItem)
+                }
+                
+                if let error = loadingState.lastError, !loadingState.isLoading {
+                    historySubmenu.addItem(NSMenuItem.separator())
+                    let errorItem = NSMenuItem()
+                    errorItem.view = createDisabledLabelView(
+                        text: error,
+                        icon: NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Error")
+                    )
+                    historySubmenu.addItem(errorItem)
+                }
             }
+            
+            historyItem.submenu = historySubmenu
+            submenu.addItem(historyItem)
             
         case .claude:
             if let fiveHour = details.fiveHourUsage {
-                submenu.addItem(NSMenuItem(title: String(format: "5h Window: %.0f%%", fiveHour), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "5h Window: %.0f%%", fiveHour))
+                submenu.addItem(item)
                 if let reset = details.fiveHourReset {
                     let formatter = DateFormatter()
                     formatter.timeStyle = .short
-                    submenu.addItem(NSMenuItem(title: "   Resets: \(formatter.string(from: reset))", action: nil, keyEquivalent: ""))
+                    let resetItem = NSMenuItem()
+                    resetItem.view = createDisabledLabelView(text: "   Resets: \(formatter.string(from: reset))")
+                    submenu.addItem(resetItem)
                 }
             }
             if let sevenDay = details.sevenDayUsage {
-                submenu.addItem(NSMenuItem(title: String(format: "7d Window: %.0f%%", sevenDay), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "7d Window: %.0f%%", sevenDay))
+                submenu.addItem(item)
                 if let reset = details.sevenDayReset {
                     let formatter = DateFormatter()
                     formatter.dateFormat = "MMM d"
-                    submenu.addItem(NSMenuItem(title: "   Resets: \(formatter.string(from: reset))", action: nil, keyEquivalent: ""))
+                    let resetItem = NSMenuItem()
+                    resetItem.view = createDisabledLabelView(text: "   Resets: \(formatter.string(from: reset))")
+                    submenu.addItem(resetItem)
                 }
             }
             submenu.addItem(NSMenuItem.separator())
             if let sonnet = details.sonnetUsage {
-                submenu.addItem(NSMenuItem(title: String(format: "Sonnet (7d): %.0f%%", sonnet), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "Sonnet (7d): %.0f%%", sonnet))
+                submenu.addItem(item)
             }
             if let opus = details.opusUsage {
-                submenu.addItem(NSMenuItem(title: String(format: "Opus (7d): %.0f%%", opus), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "Opus (7d): %.0f%%", opus))
+                submenu.addItem(item)
             }
             if let extraUsage = details.extraUsageEnabled {
-                submenu.addItem(NSMenuItem(title: "Extra Usage: \(extraUsage ? "ON" : "OFF")", action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: "Extra Usage: \(extraUsage ? "ON" : "OFF")")
+                submenu.addItem(item)
             }
             
         case .codex:
@@ -105,7 +165,9 @@ extension StatusBarController {
                     let hours = Int(reset.timeIntervalSinceNow / 3600)
                     primaryTitle += " (\(hours)h)"
                 }
-                submenu.addItem(NSMenuItem(title: primaryTitle, action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: primaryTitle)
+                submenu.addItem(item)
             }
             if let secondary = details.secondaryUsage {
                 var secondaryTitle = String(format: "Secondary: %.0f%%", secondary)
@@ -113,37 +175,51 @@ extension StatusBarController {
                     let hours = Int(reset.timeIntervalSinceNow / 3600)
                     secondaryTitle += " (\(hours)h)"
                 }
-                submenu.addItem(NSMenuItem(title: secondaryTitle, action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: secondaryTitle)
+                submenu.addItem(item)
             }
             submenu.addItem(NSMenuItem.separator())
             if let plan = details.planType {
-                submenu.addItem(NSMenuItem(title: "Plan: \(plan)", action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: "Plan: \(plan)")
+                submenu.addItem(item)
             }
             if let credits = details.creditsBalance {
-                submenu.addItem(NSMenuItem(title: String(format: "Credits: $%.2f", credits), action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: String(format: "Credits: $%.2f", credits))
+                submenu.addItem(item)
             }
             
         case .geminiCLI:
             if let models = details.modelBreakdown, !models.isEmpty {
                 for (model, quota) in models.sorted(by: { $0.key < $1.key }) {
-                    submenu.addItem(NSMenuItem(title: String(format: "%@: %.0f%%", model, quota), action: nil, keyEquivalent: ""))
+                    let item = NSMenuItem()
+                    item.view = createDisabledLabelView(text: String(format: "%@: %.0f%%", model, quota))
+                    submenu.addItem(item)
                 }
             }
             
         case .antigravity:
             if let models = details.modelBreakdown, !models.isEmpty {
                 for (model, quota) in models.sorted(by: { $0.key < $1.key }) {
-                    submenu.addItem(NSMenuItem(title: String(format: "%@: %.0f%%", model, quota), action: nil, keyEquivalent: ""))
+                    let item = NSMenuItem()
+                    item.view = createDisabledLabelView(text: String(format: "%@: %.0f%%", model, quota))
+                    submenu.addItem(item)
                 }
             }
             if details.planType != nil || details.email != nil {
                 submenu.addItem(NSMenuItem.separator())
             }
             if let plan = details.planType {
-                submenu.addItem(NSMenuItem(title: "Plan: \(plan)", action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: "Plan: \(plan)")
+                submenu.addItem(item)
             }
             if let email = details.email {
-                submenu.addItem(NSMenuItem(title: "Email: \(email)", action: nil, keyEquivalent: ""))
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: "Email: \(email)")
+                submenu.addItem(item)
             }
             
         default:
@@ -151,38 +227,56 @@ extension StatusBarController {
         }
         
         if let daily = details.dailyUsage {
-            let item = NSMenuItem(title: String(format: "Daily: $%.2f", daily), action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Daily")
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: String(format: "Daily: $%.2f", daily),
+                icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Daily")
+            )
             submenu.addItem(item)
         }
         
         if let weekly = details.weeklyUsage {
-            let item = NSMenuItem(title: String(format: "Weekly: $%.2f", weekly), action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Weekly")
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: String(format: "Weekly: $%.2f", weekly),
+                icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Weekly")
+            )
             submenu.addItem(item)
         }
         
         if let monthly = details.monthlyUsage {
-            let item = NSMenuItem(title: String(format: "Monthly: $%.2f", monthly), action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Monthly")
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: String(format: "Monthly: $%.2f", monthly),
+                icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Monthly")
+            )
             submenu.addItem(item)
         }
         
         if let remaining = details.remainingCredits {
-            let item = NSMenuItem(title: String(format: "Credits: $%.2f left", remaining), action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "creditcard", accessibilityDescription: "Credits")
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: String(format: "Credits: $%.2f left", remaining),
+                icon: NSImage(systemSymbolName: "creditcard", accessibilityDescription: "Credits")
+            )
             submenu.addItem(item)
         }
         
         if let limit = details.limit, let remaining = details.limitRemaining {
-            let item = NSMenuItem(title: String(format: "Limit: $%.2f / $%.2f", remaining, limit), action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "chart.bar", accessibilityDescription: "Limit")
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: String(format: "Limit: $%.2f / $%.2f", remaining, limit),
+                icon: NSImage(systemSymbolName: "chart.bar", accessibilityDescription: "Limit")
+            )
             submenu.addItem(item)
         }
         
         if let period = details.resetPeriod {
-            let item = NSMenuItem(title: "Resets: \(period)", action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "clock.arrow.circlepath", accessibilityDescription: "Reset")
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: "Resets: \(period)",
+                icon: NSImage(systemSymbolName: "clock.arrow.circlepath", accessibilityDescription: "Reset")
+            )
             submenu.addItem(item)
         }
         
@@ -198,9 +292,11 @@ extension StatusBarController {
         
         if state.hasNoData {
             debugLog("createCopilotHistorySubmenu: hasNoData=true, returning early")
-            let item = NSMenuItem(title: "No data", action: nil, keyEquivalent: "")
-            item.image = NSImage(systemSymbolName: "tray", accessibilityDescription: "No data")
-            item.isEnabled = false
+            let item = NSMenuItem()
+            item.view = createDisabledLabelView(
+                text: "No data",
+                icon: NSImage(systemSymbolName: "tray", accessibilityDescription: "No data")
+            )
             submenu.addItem(item)
             return submenu
         }
@@ -213,39 +309,39 @@ extension StatusBarController {
             formatter.maximumFractionDigits = 0
             
             let monthlyText = "Predicted EOM: \(formatter.string(from: NSNumber(value: prediction.predictedMonthlyRequests)) ?? "0") requests"
-            let monthlyItem = NSMenuItem(title: monthlyText, action: nil, keyEquivalent: "")
-            monthlyItem.image = NSImage(systemSymbolName: "chart.line.uptrend.xyaxis", accessibilityDescription: "Predicted EOM")
-            monthlyItem.isEnabled = false
-            monthlyItem.attributedTitle = NSAttributedString(
-                string: monthlyText,
-                attributes: [.font: NSFont.boldSystemFont(ofSize: 13)]
+            let monthlyItem = NSMenuItem()
+            monthlyItem.view = createDisabledLabelView(
+                text: monthlyText,
+                icon: NSImage(systemSymbolName: "chart.line.uptrend.xyaxis", accessibilityDescription: "Predicted EOM"),
+                font: NSFont.boldSystemFont(ofSize: 13)
             )
             submenu.addItem(monthlyItem)
             
             if prediction.predictedBilledAmount > 0 {
                 let costText = String(format: "Predicted Add-on: $%.2f", prediction.predictedBilledAmount)
-                let costItem = NSMenuItem(title: costText, action: nil, keyEquivalent: "")
-                costItem.image = NSImage(systemSymbolName: "dollarsign.circle", accessibilityDescription: "Predicted Add-on")
-                costItem.isEnabled = false
-                costItem.attributedTitle = NSAttributedString(
-                    string: costText,
-                    attributes: [
-                        .font: NSFont.boldSystemFont(ofSize: 13),
-                        .underlineStyle: NSUnderlineStyle.single.rawValue
-                    ]
+                let costItem = NSMenuItem()
+                costItem.view = createDisabledLabelView(
+                    text: costText,
+                    icon: NSImage(systemSymbolName: "dollarsign.circle", accessibilityDescription: "Predicted Add-on"),
+                    font: NSFont.boldSystemFont(ofSize: 13),
+                    underline: true
                 )
                 submenu.addItem(costItem)
             }
             
             if prediction.confidenceLevel == .low {
-                let confItem = NSMenuItem(title: "Low prediction accuracy", action: nil, keyEquivalent: "")
-                confItem.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Low accuracy")
-                confItem.isEnabled = false
+                let confItem = NSMenuItem()
+                confItem.view = createDisabledLabelView(
+                    text: "Low prediction accuracy",
+                    icon: NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Low accuracy")
+                )
                 submenu.addItem(confItem)
             } else if prediction.confidenceLevel == .medium {
-                let confItem = NSMenuItem(title: "Medium prediction accuracy", action: nil, keyEquivalent: "")
-                confItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Medium accuracy")
-                confItem.isEnabled = false
+                let confItem = NSMenuItem()
+                confItem.view = createDisabledLabelView(
+                    text: "Medium prediction accuracy",
+                    icon: NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Medium accuracy")
+                )
                 submenu.addItem(confItem)
             }
             
@@ -258,9 +354,11 @@ extension StatusBarController {
         
         if state.isStale {
             debugLog("createCopilotHistorySubmenu: data is stale")
-            let staleItem = NSMenuItem(title: "Data is stale", action: nil, keyEquivalent: "")
-            staleItem.image = NSImage(systemSymbolName: "clock.badge.exclamationmark", accessibilityDescription: "Data is stale")
-            staleItem.isEnabled = false
+            let staleItem = NSMenuItem()
+            staleItem.view = createDisabledLabelView(
+                text: "Data is stale",
+                icon: NSImage(systemSymbolName: "clock.badge.exclamationmark", accessibilityDescription: "Data is stale")
+            )
             submenu.addItem(staleItem)
             debugLog("createCopilotHistorySubmenu: stale item added")
         }
@@ -286,12 +384,8 @@ extension StatusBarController {
                 let reqStr = numberFormatter.string(from: NSNumber(value: day.totalRequests)) ?? "0"
                 let label = isToday ? "\(dateStr) (Today): \(reqStr) req" : "\(dateStr): \(reqStr) req"
                 
-                let item = NSMenuItem(title: label, action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                item.attributedTitle = NSAttributedString(
-                    string: label,
-                    attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)]
-                )
+                let item = NSMenuItem()
+                item.view = createDisabledLabelView(text: label, monospaced: true)
                 submenu.addItem(item)
             }
             debugLog("createCopilotHistorySubmenu: all history items added")
