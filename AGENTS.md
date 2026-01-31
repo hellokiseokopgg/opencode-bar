@@ -192,4 +192,13 @@ let rightElementX: CGFloat = menuWidth - trailingMargin - iconSize  // = 270
        - Fix: Move loading state assignment to start of function, before any cleanup operations
        - Or: Add second state check after cleanup to ensure only one instance proceeds
        - Pattern: `isLoading = true` → `killExistingProcesses()` → proceed with fetch
+   - **Custom Menu View Layout Consistency with createDisabledLabelView**:
+      - Vertical Alignment Mismatch: `createDisabledLabelView` uses `centerYAnchor`, custom views using `y: 3` causes pixel misalignment
+      - Text Color Mismatch: `createDisabledLabelView` uses `secondaryLabelColor`, using `disabledControlTextColor` in custom views causes color difference
+      - Solution: When creating custom menu item views that should align with `createDisabledLabelView` items:
+        1. Use `translatesAutoresizingMaskIntoConstraints = false` and `centerYAnchor` for vertical alignment
+        2. Use `secondaryLabelColor` for text color consistency
+        3. Use `indent` parameter instead of spaces for horizontal indentation
+      - Pattern: Match exactly what `createDisabledLabelView` does internally
+      - Example Fix: Pace row changed from `frame.y = 3` to `centerYAnchor.constraint(equalTo: view.centerYAnchor)`
           <!-- opencode:reflection:end -->
