@@ -28,6 +28,8 @@
     - OK: "OpenRouter: $37.42"
     - OK: "OpenRouter ($37.42)"
     - NO: "OpenRouter    $37.42" (stupid random spaces)
+  - **USD**
+    - Use only two decimals when expressing dollars. (e.g. `$00.00`) 
 
 ### Explicit 'used' or 'left'
 - To avoid confusing of used % or left %, explicit if it's used or left on every labels.
