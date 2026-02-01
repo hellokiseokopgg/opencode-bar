@@ -607,33 +607,16 @@ extension StatusBarController {
             calendar.timeZone = utc
         }
 
-        let resetComponents = calendar.dateComponents([.year, .month, .day], from: resetDate)
-        guard let resetYear = resetComponents.year,
-              let resetMonth = resetComponents.month else {
-            return PaceInfo(elapsedRatio: 0, usageRatio: usagePercent / 100.0, predictedFinalUsage: usagePercent)
-        }
-
-        var billingStartMonth = resetMonth - 1
-        var billingStartYear = resetYear
-        if billingStartMonth < 1 {
-            billingStartMonth = 12
-            billingStartYear -= 1
-        }
-
-        var startComponents = DateComponents()
-        startComponents.year = billingStartYear
-        startComponents.month = billingStartMonth
-        startComponents.day = resetComponents.day ?? 1
-        startComponents.hour = 0
-        startComponents.minute = 0
-        startComponents.second = 0
-
-        guard let billingStart = calendar.date(from: startComponents) else {
+        guard let billingStart = calendar.date(byAdding: DateComponents(month: -1), to: resetDate) else {
             return PaceInfo(elapsedRatio: 0, usageRatio: usagePercent / 100.0, predictedFinalUsage: usagePercent)
         }
 
         let totalSeconds = resetDate.timeIntervalSince(billingStart)
         let elapsedSeconds = now.timeIntervalSince(billingStart)
+
+        guard totalSeconds > 0 else {
+            return PaceInfo(elapsedRatio: 0, usageRatio: usagePercent / 100.0, predictedFinalUsage: usagePercent)
+        }
 
         let elapsedRatio = max(0, min(1, elapsedSeconds / totalSeconds))
         let usageRatio = usagePercent / 100.0

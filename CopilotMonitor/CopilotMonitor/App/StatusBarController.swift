@@ -712,15 +712,6 @@ final class StatusBarController: NSObject {
         return payAsYouGo + subscriptions
     }
 
-    private func shouldShowDollarAmount() -> Bool {
-        let hasSubscription = SubscriptionSettingsManager.shared.hasAnySubscription()
-        if hasSubscription {
-            return true
-        }
-        let payAsYouGo = calculatePayAsYouGoTotal(providerResults: providerResults, copilotUsage: currentUsage)
-        return payAsYouGo > 0
-    }
-
       private func updateMultiProviderMenu() {
           debugLog("updateMultiProviderMenu: started")
           guard let separatorIndex = menu.items.firstIndex(where: { $0.isSeparatorItem }) else {
@@ -943,10 +934,10 @@ final class StatusBarController: NSObject {
 
               if let resetDate = copilotUsage.quotaResetDateUTC {
                   let formatter = DateFormatter()
-                  formatter.dateFormat = "yyyy-MM-dd HH:mm zzz"
-                  formatter.timeZone = TimeZone.current
+                  formatter.dateFormat = "yyyy-MM-dd HH:mm"
+                  formatter.timeZone = TimeZone(identifier: "UTC") ?? TimeZone(secondsFromGMT: 0)!
                   let resetItem = NSMenuItem()
-                  resetItem.view = createDisabledLabelView(text: "Resets: \(formatter.string(from: resetDate))", indent: 18)
+                  resetItem.view = createDisabledLabelView(text: "Resets: \(formatter.string(from: resetDate)) UTC", indent: 18)
                   submenu.addItem(resetItem)
 
                   let paceInfo = calculateMonthlyPace(usagePercent: usagePercent, resetDate: resetDate)
@@ -1240,29 +1231,41 @@ final class StatusBarController: NSObject {
     @objc func customSubscriptionSelected(_ sender: NSMenuItem) {
         guard let subscriptionKey = sender.representedObject as? String else { return }
 
-        let alert = NSAlert()
-        alert.messageText = "Custom Subscription Cost"
-        alert.informativeText = "Enter the monthly subscription cost:"
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Cancel")
+        var shouldPrompt = true
+        while shouldPrompt {
+            let alert = NSAlert()
+            alert.messageText = "Custom Subscription Cost"
+            alert.informativeText = "Enter the monthly subscription cost:"
+            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: "Cancel")
 
-        let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        if case .custom(let currentCost) = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKey) {
-            inputField.stringValue = String(format: "%.0f", currentCost)
-        } else {
-            inputField.stringValue = ""
-        }
-        inputField.placeholderString = "Enter amount in USD"
-        alert.accessoryView = inputField
+            let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+            if case .custom(let currentCost) = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKey) {
+                inputField.stringValue = String(format: "%.0f", currentCost)
+            } else {
+                inputField.stringValue = ""
+            }
+            inputField.placeholderString = "Enter amount in USD"
+            alert.accessoryView = inputField
 
-        NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate(ignoringOtherApps: true)
 
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn {
-            if let cost = Double(inputField.stringValue), cost >= 0 {
-                SubscriptionSettingsManager.shared.setPlan(.custom(cost), forKey: subscriptionKey)
-                menu.cancelTracking()
-                updateMultiProviderMenu()
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                if let cost = Double(inputField.stringValue), cost >= 0 {
+                    SubscriptionSettingsManager.shared.setPlan(.custom(cost), forKey: subscriptionKey)
+                    menu.cancelTracking()
+                    updateMultiProviderMenu()
+                    shouldPrompt = false
+                } else {
+                    let errorAlert = NSAlert()
+                    errorAlert.messageText = "Invalid Amount"
+                    errorAlert.informativeText = "Please enter a valid non-negative number."
+                    errorAlert.addButton(withTitle: "OK")
+                    errorAlert.runModal()
+                }
+            } else {
+                shouldPrompt = false
             }
         }
     }

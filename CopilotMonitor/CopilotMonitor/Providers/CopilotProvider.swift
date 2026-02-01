@@ -58,7 +58,11 @@ final class CopilotProvider: ProviderProtocol {
                 copilotPlan: planInfo.plan,
                 quotaResetDateUTC: planInfo.quotaResetDateUTC
             )
-            logger.info("CopilotProvider: Plan info merged - \(planInfo.plan), reset: \(planInfo.quotaResetDateUTC)")
+            if let resetDate = planInfo.quotaResetDateUTC {
+                logger.info("CopilotProvider: Plan info merged - \(planInfo.plan), reset: \(resetDate)")
+            } else {
+                logger.info("CopilotProvider: Plan info merged - \(planInfo.plan), reset: unknown")
+            }
         }
 
         saveCache(usage: usage)

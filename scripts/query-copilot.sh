@@ -25,12 +25,6 @@ curl -s "https://api.github.com/copilot_internal/user" \
     -H "Authorization: token $ACCESS" \
     -H "Accept: application/json" \
     -H "Editor-Version: vscode/1.96.2" \
-    -H "X-Github-Api-Version: 2025-04-01" | jq
-
-curl -s "https://api.github.com/copilot_internal/user" \
-    -H "Authorization: token $ACCESS" \
-    -H "Accept: application/json" \
-    -H "Editor-Version: vscode/1.96.2" \
     -H "X-Github-Api-Version: 2025-04-01" | jq '
 {
     "plan": .copilot_plan,

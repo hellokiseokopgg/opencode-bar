@@ -192,8 +192,11 @@ final class SubscriptionSettingsManager {
 
     func setPlan(_ plan: SubscriptionPlan, forKey key: String) {
         let fullKey = "\(userDefaultsKeyPrefix)\(key)"
-        if let data = try? JSONEncoder().encode(plan) {
+        do {
+            let data = try JSONEncoder().encode(plan)
             UserDefaults.standard.set(data, forKey: fullKey)
+        } catch {
+            NSLog("Failed to encode SubscriptionPlan for key '%@': %@", fullKey, String(describing: error))
         }
     }
 

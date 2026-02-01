@@ -195,7 +195,7 @@ final class TokenManager {
     /// Fetches Copilot plan and quota reset info from GitHub internal API
     /// Uses the OpenCode GitHub Copilot token
     /// - Returns: Tuple of (plan, quotaResetDateUTC) if successful, nil otherwise
-    func fetchCopilotPlanInfo() async -> (plan: String, quotaResetDateUTC: Date)? {
+    func fetchCopilotPlanInfo() async -> (plan: String, quotaResetDateUTC: Date?)? {
         guard let accessToken = getGitHubCopilotAccessToken() else {
             logger.warning("No GitHub Copilot token available for plan info fetch")
             return nil
@@ -261,7 +261,7 @@ final class TokenManager {
                 return (plan: plan, quotaResetDateUTC: resetDate)
             } else {
                 logger.warning("Copilot plan fetched but no reset date: \(plan)")
-                return (plan: plan, quotaResetDateUTC: Date())
+                return (plan: plan, quotaResetDateUTC: nil)
             }
         } catch {
             logger.error("Failed to fetch Copilot plan info: \(error.localizedDescription)")
