@@ -51,7 +51,7 @@
 - **Quota Alerts**: Warning icons when remaining quota < 20%
 - **Detailed Submenus**: Click any provider for in-depth metrics
 
-### Usage History & Predictions (Copilot)
+### Usage History & Predictions
 - **Daily Tracking**: View request counts and overage costs
 - **EOM Prediction**: Estimates end-of-month totals using weighted averages
 - **Add-on Cost Tracking**: Shows additional costs when exceeding limits
