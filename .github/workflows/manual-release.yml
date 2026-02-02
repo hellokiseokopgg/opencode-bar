@@ -109,7 +109,7 @@ jobs:
           MAX_RETRIES=3
           RETRY_DELAY=30
           
-          for attempt in $(seq 1 $MAX_RETRIES); do
+          for attempt in $(seq 1 "$MAX_RETRIES"); do
             echo "Build attempt $attempt of $MAX_RETRIES..."
             
             if xcodebuild archive \
@@ -123,7 +123,7 @@ jobs:
               echo "✅ Build succeeded on attempt $attempt"
               break
             else
-              if [ $attempt -eq $MAX_RETRIES ]; then
+              if [ "$attempt" -eq $MAX_RETRIES ]; then
                 echo "❌ Build failed after $MAX_RETRIES attempts"
                 exit 1
               fi
@@ -151,11 +151,11 @@ jobs:
             local max_retries=3
             local retry_delay=10
             
-            for attempt in $(seq 1 $max_retries); do
+            for attempt in $(seq 1 "$max_retries"); do
               if codesign --force --sign "Developer ID Application" --timestamp --options runtime "$target" 2>&1; then
                 return 0
               else
-                if [ $attempt -eq $max_retries ]; then
+                if [ "$attempt" -eq $max_retries ]; then
                   echo "❌ Failed to sign $target after $max_retries attempts"
                   return 1
                 fi
