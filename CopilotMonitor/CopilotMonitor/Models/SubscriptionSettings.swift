@@ -99,7 +99,7 @@ struct ProviderSubscriptionPresets {
     static let claude: [SubscriptionPreset] = [
         SubscriptionPreset(name: "Pro", cost: 20),
         SubscriptionPreset(name: "MAX", cost: 100),
-        SubscriptionPreset(name: "MAX 5x", cost: 200)
+        SubscriptionPreset(name: "MAX", cost: 200)
     ]
 
     static let codex: [SubscriptionPreset] = [
@@ -110,11 +110,11 @@ struct ProviderSubscriptionPresets {
     ]
 
     static let geminiCLI: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Plus (Monthly)", cost: 4),
-        SubscriptionPreset(name: "Plus (Yearly)", cost: 8),
+        SubscriptionPreset(name: "Plus", cost: 4),
+        SubscriptionPreset(name: "Plus", cost: 8),
         SubscriptionPreset(name: "Pro", cost: 20),
         SubscriptionPreset(name: "Ultra", cost: 125),
-        SubscriptionPreset(name: "Ultra Max", cost: 250)
+        SubscriptionPreset(name: "Ultra", cost: 250)
     ]
 
     static let copilot: [SubscriptionPreset] = [

@@ -383,5 +383,35 @@ func buildProviderSubmenu() -> [NSMenuItem] {
         - Cache Success: Subsequent fetches show "(cached)" for all days, instant response
         - Pattern: Hybrid approach (fetch recent + cache older) reduces API calls by 71%+
         - Optimization: Ensure cache validation uses UTC calendar to match cache storage format
+   - **Dynamic Binary Discovery for External Tools**:
+      - Hardcoded Path Problem: Single hardcoded path like `~/.opencode/bin/opencode` fails when users install via Homebrew or other methods
+      - Multi-Strategy Search: Implement fallback search pattern with multiple discovery methods
+      - Search Priority: 1) 'which opencode' in current PATH, 2) Login shell PATH (captures shell profile additions), 3) Common install locations (Homebrew, OpenCode default, pip/pipx)
+      - Lazy Loading: Cache binary path on first successful discovery to avoid repeated searches
+      - Debug Logging: Show which discovery method found the binary for troubleshooting
+      - Example Fix: OpenCodeZenProvider changed from hardcoded path to dynamic multi-strategy search
+      - Pattern: Replace single path with search function that tries multiple locations in priority order
+   - **Multi-Strategy Auth File Discovery**:
+      - Single Path Problem: Hardcoded `~/.local/share/opencode/auth.json` fails when users have different OpenCode configurations
+      - XDG Standard Support: Respect $XDG_DATA_HOME environment variable when set (highest priority)
+      - Fallback Priority: 1) $XDG_DATA_HOME/opencode/auth.json (if set), 2) ~/.local/share/opencode/auth.json (XDG default), 3) ~/Library/Application Support/opencode/auth.json (macOS convention)
+      - Path Tracking: Store `lastFoundAuthPath` to show users which file was loaded for troubleshooting
+      - Sequential Try Pattern: Loop through paths and use first one that exists and is valid
+      - Example Fix: TokenManager added getAuthFilePaths() function and sequential try-catch loop
+      - Pattern: Define priority array of possible paths, try each in order, return first valid result
+   - **Sparkle Auto-Relaunch for Menu Bar Apps**:
+      - LSUIElement Special Case: Menu bar apps (LSUIElement=true) don't automatically relaunch after Sparkle updates
+      - Missing Relaunch: After update completes, app quits but doesn't restart, requiring manual launch
+      - Solution: Add SUAllowsAutomaticUpdates to Info.plist and implement SPUUpdaterDelegate with lifecycle hooks
+      - Required Methods: `updaterWillRelaunchApplication(_:)` and `updaterDidRelaunchApplication(_:)` in AppDelegate
+      - Pattern: Sparkle framework handles restart automatically when delegate is properly configured
+      - Example Fix: Added SUAllowsAutomaticUpdates=Yes to Info.plist and SPUUpdaterDelegate implementation
+   - **Dependency Version Pinning for CI Compatibility**:
+      - Experimental Feature Error: Newer package versions may require Swift experimental features not available in CI
+      - Example Failure: ArgumentParser 1.7.0 required 'AccessLevelOnImport' experimental feature
+      - CI Compatibility Solution: Pin to specific version using exactVersion instead of upToNextMajorVersion
+      - Pattern: Use exact version in Package.resolved to ensure consistent builds across environments
+      - Trade-off: Sacrifice latest features for build stability, update pinning only after verifying CI compatibility
+      - Example Fix: Pinned ArgumentParser from 1.7.0 to 1.5.0 in Package.resolved
 
 <!-- opencode:reflection:end -->
