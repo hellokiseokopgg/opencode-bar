@@ -199,12 +199,16 @@ final class ZaiCodingPlanProvider: ProviderProtocol {
         )
 
         let now = Date()
-        let endTime = Int64(now.timeIntervalSince1970 * 1000)
-        let startTime = endTime - 24 * 60 * 60 * 1000
+        let startDate = now.addingTimeInterval(-24 * 60 * 60)
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        let startTimeStr = dateFormatter.string(from: startDate)
+        let endTimeStr = dateFormatter.string(from: now)
 
         var modelUsageTotals: ZaiModelUsageTotals?
         do {
-            let modelUsage = try await fetchModelUsage(apiKey: apiKey, startTime: startTime, endTime: endTime)
+            let modelUsage = try await fetchModelUsage(apiKey: apiKey, startTime: startTimeStr, endTime: endTimeStr)
             modelUsageTotals = modelUsage.totalUsage
         } catch {
             logger.warning("Z.AI Coding Plan model usage fetch failed: \(error.localizedDescription)")
@@ -212,7 +216,7 @@ final class ZaiCodingPlanProvider: ProviderProtocol {
 
         var toolUsageTotals: ZaiToolUsageTotals?
         do {
-            let toolUsage = try await fetchToolUsage(apiKey: apiKey, startTime: startTime, endTime: endTime)
+            let toolUsage = try await fetchToolUsage(apiKey: apiKey, startTime: startTimeStr, endTime: endTimeStr)
             toolUsageTotals = toolUsage.totalUsage
         } catch {
             logger.warning("Z.AI Coding Plan tool usage fetch failed: \(error.localizedDescription)")
@@ -251,13 +255,13 @@ final class ZaiCodingPlanProvider: ProviderProtocol {
         return try decodeResponse(ZaiQuotaLimitResponse.self, from: data)
     }
 
-    private func fetchModelUsage(apiKey: String, startTime: Int64, endTime: Int64) async throws -> ZaiModelUsageResponse {
+    private func fetchModelUsage(apiKey: String, startTime: String, endTime: String) async throws -> ZaiModelUsageResponse {
         guard var components = URLComponents(string: "https://api.z.ai/api/monitor/usage/model-usage") else {
             throw ProviderError.networkError("Invalid Z.AI Coding Plan model usage endpoint")
         }
         components.queryItems = [
-            URLQueryItem(name: "startTime", value: String(startTime)),
-            URLQueryItem(name: "endTime", value: String(endTime))
+            URLQueryItem(name: "startTime", value: startTime),
+            URLQueryItem(name: "endTime", value: endTime)
         ]
         guard let url = components.url else {
             throw ProviderError.networkError("Invalid Z.AI Coding Plan model usage URL")
@@ -267,13 +271,13 @@ final class ZaiCodingPlanProvider: ProviderProtocol {
         return try decodeResponse(ZaiModelUsageResponse.self, from: data)
     }
 
-    private func fetchToolUsage(apiKey: String, startTime: Int64, endTime: Int64) async throws -> ZaiToolUsageResponse {
+    private func fetchToolUsage(apiKey: String, startTime: String, endTime: String) async throws -> ZaiToolUsageResponse {
         guard var components = URLComponents(string: "https://api.z.ai/api/monitor/usage/tool-usage") else {
             throw ProviderError.networkError("Invalid Z.AI Coding Plan tool usage endpoint")
         }
         components.queryItems = [
-            URLQueryItem(name: "startTime", value: String(startTime)),
-            URLQueryItem(name: "endTime", value: String(endTime))
+            URLQueryItem(name: "startTime", value: startTime),
+            URLQueryItem(name: "endTime", value: endTime)
         ]
         guard let url = components.url else {
             throw ProviderError.networkError("Invalid Z.AI Coding Plan tool usage URL")

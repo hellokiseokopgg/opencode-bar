@@ -61,12 +61,12 @@ end'
 echo ""
 echo "--- Model Usage (Last 24h) ---"
 
-# Calculate time range for last 24 hours (in milliseconds)
-NOW=$(date +%s)
-START_TIME=$((($NOW - 86400) * 1000))
-END_TIME=$(($NOW * 1000))
+# Calculate time range for last 24 hours (API expects yyyy-MM-dd HH:mm:ss format)
+END_TIME=$(date -u +"%Y-%m-%d %H:%M:%S")
+START_TIME=$(date -u -v-24H +"%Y-%m-%d %H:%M:%S")
 
-MODEL_RESPONSE=$(curl -s "https://api.z.ai/api/monitor/usage/model-usage?startTime=$START_TIME&endTime=$END_TIME" \
+MODEL_RESPONSE=$(curl -s "https://api.z.ai/api/monitor/usage/model-usage" \
+    -G --data-urlencode "startTime=$START_TIME" --data-urlencode "endTime=$END_TIME" \
     -H "Authorization: $API_KEY" \
     -H "Accept-Language: en-US,en" \
     -H "Content-Type: application/json")
@@ -89,7 +89,8 @@ end'
 echo ""
 echo "--- Tool Usage (Last 24h) ---"
 
-TOOL_RESPONSE=$(curl -s "https://api.z.ai/api/monitor/usage/tool-usage?startTime=$START_TIME&endTime=$END_TIME" \
+TOOL_RESPONSE=$(curl -s "https://api.z.ai/api/monitor/usage/tool-usage" \
+    -G --data-urlencode "startTime=$START_TIME" --data-urlencode "endTime=$END_TIME" \
     -H "Authorization: $API_KEY" \
     -H "Accept-Language: en-US,en" \
     -H "Content-Type: application/json")
